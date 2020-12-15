@@ -64,17 +64,37 @@ pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
     slice.copy_from_slice(&merged);
 }
 
-pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
+pub fn merge<T: Ord + Copy>(slice: &mut [T]) {
+    if slice.len() <= 32 {
+        insertion(slice);
+        return;
+    }
+    let slice_len = slice.len();
+    let middle = slice_len / 2;
+    merge(&mut slice[0..middle]);
+    merge(&mut slice[middle..slice_len]);
+    merge_single(slice, middle);
+}
+
+pub fn weird<T: Ord + Copy + std::fmt::Debug>(slice: &mut [T]) {
     let chunk_size = (slice.len() as f64).sqrt() as usize;
     for chunk in slice.chunks_mut(chunk_size) {
         insertion(chunk);
     }
-    for i in (chunk_size..slice.len()).step_by(chunk_size) {
-        let slice_len = slice.len();
-        if i + chunk_size < slice_len {
-            merge_single(&mut slice[0..(i + chunk_size)], i)
-        } else {
-            merge_single(&mut slice[0..slice_len], i)
+    let mut step = 1;
+    let mut merge_count = 1;
+    while merge_count > 0 {
+        merge_count = 0;
+        for i in ((step * chunk_size)..slice.len()).step_by(step * chunk_size * 2) {
+            let slice_len = slice.len();
+            if i + step * chunk_size < slice_len {
+                merge_single(&mut slice[(i - step * chunk_size)..(i + step * chunk_size)],
+                    step * chunk_size);
+            } else {
+                merge_single(&mut slice[(i - step * chunk_size)..slice_len], step * chunk_size);
+            }
+            merge_count += 1;
         }
+        step *= 2;
     }
 }

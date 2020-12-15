@@ -33,15 +33,17 @@ fn main() {
     let seed: u64 = thread_rng().gen();
     println!("Seed: {}", seed);
 
-    let mut table = table!(["", "Rust's sort", "sort::insertion", "sort::shell", "sort::weird"]);
-    let mut test_size = 4;
+    let mut table = table!(["", "Rust's sort", "sort::insertion",
+        "sort::shell", "sort::weird", "sort::merge"]);
+    let mut test_size = 3;
     while test_size <= GOAL {
         table.add_row(row![test_size,
             bench(|slice| slice.sort(), test_size, GOAL / test_size, seed) as f64 / 1000000.0,
             bench(sort::insertion, test_size, GOAL / test_size, seed) as f64 / 1000000.0,
             bench(sort::shell, test_size, GOAL / test_size, seed) as f64 / 1000000.0,
-            bench(sort::weird, test_size, GOAL / test_size, seed) as f64 / 1000000.0]);
-        test_size *= 4;
+            bench(sort::weird, test_size, GOAL / test_size, seed) as f64 / 1000000.0,
+            bench(sort::merge, test_size, GOAL / test_size, seed) as f64 / 1000000.0]);
+        test_size = (test_size as f64 * 1.5) as usize;
     }
     table.printstd();
 }
