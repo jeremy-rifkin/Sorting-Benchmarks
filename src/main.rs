@@ -1,3 +1,4 @@
+#[macro_use] extern crate prettytable;
 use std::time::Instant;
 use rand::prelude::*;
 use rand::Rng;
@@ -7,9 +8,8 @@ fn bench(mut sort: impl FnMut(&mut [i32]), size: usize, count: usize, seed: u64)
     let mut rng = StdRng::seed_from_u64(seed);
     let mut test_vectors: Vec<Vec<i32>> = vec![vec![0; size]; count];
     for i in 0..count {
-        test_vectors.push(Vec::new());
-        for _ in 0..size {
-            test_vectors[i].push(rng.gen());
+        for j in 0..size {
+            test_vectors[i][j] = rng.gen();
         }
     }
 
@@ -22,30 +22,26 @@ fn bench(mut sort: impl FnMut(&mut [i32]), size: usize, count: usize, seed: u64)
 
     let mut sum = 0;
     for i in 0..count {
+        assert!(test_vectors[i].windows(2).all(|slice| slice[0] <= slice[1]));
         sum += results[i];
     }
     sum / count as u128
 }
 
 fn main() {
-    let test_size = 20;
-    let test_count = 1000;
+    const GOAL: usize = 16384;
     let seed: u64 = thread_rng().gen();
     println!("Seed: {}", seed);
 
-    println!(
-        "{} takes {} seconds on average to sort an array of size {}. {} tests run.",
-        "Rust's sorting algorithm",
-        bench(|slice| slice.sort(), test_size, test_count, seed) as f64 / 1000000000.0,
-        test_size,
-        test_count
-    );
-
-    println!(
-        "{} takes {} seconds on average to sort an array of size {}. {} tests run.",
-        "sort::insertion",
-        bench(sort::insertion, test_size, test_count, seed) as f64 / 1000000000.0,
-        test_size,
-        test_count
-    );
+    let mut table = table!(["", "Rust's sort", "sort::insertion", "sort::shell", "sort::weird"]);
+    let mut test_size = 4;
+    while test_size <= GOAL {
+        table.add_row(row![test_size,
+            bench(|slice| slice.sort(), test_size, GOAL / test_size, seed) as f64 / 1000000.0,
+            bench(sort::insertion, test_size, GOAL / test_size, seed) as f64 / 1000000.0,
+            bench(sort::shell, test_size, GOAL / test_size, seed) as f64 / 1000000.0,
+            bench(sort::weird, test_size, GOAL / test_size, seed) as f64 / 1000000.0]);
+        test_size *= 4;
+    }
+    table.printstd();
 }
