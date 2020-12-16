@@ -1,4 +1,17 @@
 
+pub fn bubble_sort<T: Ord>(slice: &mut [T]) {
+    let mut swapped = true;
+    while swapped {
+        swapped = false;
+        for i in 1..slice.len() {
+            if slice[i] < slice[i - 1] {
+                slice.swap(i, i - 1);
+                swapped = true;
+            }
+        }
+    }
+}
+
 pub fn insertion_gap<T: Ord>(slice: &mut [T], gap: usize) {
     if gap == 0 {
         panic!("Invalid argument! gap has to be at least 1.");
@@ -76,7 +89,7 @@ pub fn merge<T: Ord + Copy>(slice: &mut [T]) {
     merge_single(slice, middle);
 }
 
-pub fn weird<T: Ord + Copy + std::fmt::Debug>(slice: &mut [T]) {
+pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
     let chunk_size = (slice.len() as f64).sqrt() as usize;
     for chunk in slice.chunks_mut(chunk_size) {
         insertion(chunk);
