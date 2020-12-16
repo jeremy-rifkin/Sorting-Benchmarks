@@ -65,7 +65,11 @@ pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: impl Fn(usize) -> u
 }
 
 pub fn shell<T: Ord>(slice: &mut [T]) {
-    const DEFAULT_SEQUENCE: [usize; 8] = [701, 301, 132, 57, 23, 10, 4, 1];
+    const DEFAULT_SEQUENCE: [usize; 12] = [
+        20622, 8855, 3802, 1633,
+        701, 301, 132, 57,
+        23, 10, 4, 1
+    ];
     shell_sequence(slice, DEFAULT_SEQUENCE.iter());
 }
 
@@ -104,10 +108,15 @@ pub fn merge<T: Ord + Copy>(slice: &mut [T]) {
 }
 
 pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
+    // Sort chunks of size sqrt(N) using an O(N^2) algorithm.
+    // This has O(N^1.5) time complexity.
     let chunk_size = (slice.len() as f64).sqrt() as usize;
     for chunk in slice.chunks_mut(chunk_size) {
         insertion(chunk);
     }
+
+    // Merge these chunks together. Using a naive implementation, this would also be
+    // O(N^1.5) time complexity, but I decided to improve it using basic divide-and-conquer.
     let mut step = 1;
     let mut merge_count = 1;
     while merge_count > 0 {
