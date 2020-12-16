@@ -36,12 +36,13 @@ fn main() {
     println!("Seed: {}", seed);
 
     // Slower sorting algorithms.
-    let mut table = table!(["", "sort::insertion", "sort::bubble"]);
+    let mut table = table!(["", "sort::insertion", "sort::bubble", "sort::selection"]);
     let mut test_size = 3;
     while test_size <= SLOW_GOAL / MIN_TESTS {
         table.add_row(row![test_size,
             bench(sort::insertion, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
-            bench(sort::bubble_sort, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0]);
+            bench(sort::bubble, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
+            bench(sort::selection, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0]);
         test_size = (test_size as f64 * 1.5) as usize;
     }
     table.printstd();
