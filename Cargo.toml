@@ -1,10 +1,10 @@
 [package]
-name = "rost"
+name = "Sorting-Benchmarks"
 version = "0.1.0"
-authors = ["Robochu <oleg.aprelikov@gmail.com>"]
+authors = ["Robochu <oleg.aprelikov@gmail.com>", "Jeremy Rifkin <rifkin@purdue.edu>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/jeremy-rifkin/Sorting-Benchmarks"
+publish = false
 
 [dependencies]
 rand = "0.7.3"
