@@ -54,8 +54,17 @@ pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: impl Fn(usize) -> u
 }
 
 pub fn shell<T: Ord>(slice: &mut [T]) {
+<<<<<<< HEAD
 	const DEFAULT_SEQUENCE: [usize; 8] = [701, 301, 132, 57, 23, 10, 4, 1];
 	shell_sequence(slice, DEFAULT_SEQUENCE.iter());
+=======
+    const DEFAULT_SEQUENCE: [usize; 12] = [
+        20622, 8855, 3802, 1633,
+        701, 301, 132, 57,
+        23, 10, 4, 1
+    ];
+    shell_sequence(slice, DEFAULT_SEQUENCE.iter());
+>>>>>>> 2cced910058c9049294e6fe7092b24a00f17e7e1
 }
 
 pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
