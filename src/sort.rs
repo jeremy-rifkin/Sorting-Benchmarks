@@ -18,7 +18,6 @@ pub fn insertion_gap<T: Ord>(slice: &mut [T], gap: usize) {
 	if gap == 0 {
 		panic!("Invalid argument! gap has to be at least 1.");
 	}
-	
 
 	for i in 1..(gap + 1) {
 		for j in (i..slice.len()).step_by(gap) {
@@ -54,17 +53,12 @@ pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: impl Fn(usize) -> u
 }
 
 pub fn shell<T: Ord>(slice: &mut [T]) {
-<<<<<<< HEAD
-	const DEFAULT_SEQUENCE: [usize; 8] = [701, 301, 132, 57, 23, 10, 4, 1];
+	const DEFAULT_SEQUENCE: [usize; 12] = [
+		20622, 8855, 3802, 1633,
+		701, 301, 132, 57,
+		23, 10, 4, 1
+	];
 	shell_sequence(slice, DEFAULT_SEQUENCE.iter());
-=======
-    const DEFAULT_SEQUENCE: [usize; 12] = [
-        20622, 8855, 3802, 1633,
-        701, 301, 132, 57,
-        23, 10, 4, 1
-    ];
-    shell_sequence(slice, DEFAULT_SEQUENCE.iter());
->>>>>>> 2cced910058c9049294e6fe7092b24a00f17e7e1
 }
 
 pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
@@ -102,10 +96,14 @@ pub fn merge<T: Ord + Copy>(slice: &mut [T]) {
 }
 
 pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
+	// Sort chunks of size sqrt(N) using an O(N^2) algorithm.
+	// This has O(N^1.5) time complexity.
 	let chunk_size = (slice.len() as f64).sqrt() as usize;
 	for chunk in slice.chunks_mut(chunk_size) {
 		insertion(chunk);
 	}
+	// Merge these chunks together. Using a naive implementation, this would also be
+	// O(N^1.5) time complexity, but I decided to improve it using basic divide-and-conquer.
 	let mut step = 1;
 	let mut merge_count = 1;
 	while merge_count > 0 {
