@@ -2,6 +2,7 @@
 use std::time::Instant;
 use rand::prelude::*;
 use rand::Rng;
+mod algos;
 mod sort;
 
 fn bench(mut sort: impl FnMut(&mut [i32]), size: usize, count: usize, seed: u64) -> u128 {
@@ -36,26 +37,26 @@ fn main() {
 	println!("Seed: {}", seed);
 
 	// Slower sorting algorithms.
-	let mut table = table!(["", "sort::insertion", "sort::bubble", "sort::selection"]);
+	let mut table = table!(["", "algos::insertion", "algos::bubble", "algos::selection"]);
 	let mut test_size = 3;
 	while test_size <= SLOW_GOAL / MIN_TESTS {
 		table.add_row(row![test_size,
-			bench(sort::insertion, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(sort::bubble, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(sort::selection, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0]);
+			bench(algos::insertion, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
+			bench(algos::bubblesort::bubble, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
+			bench(algos::selectionsort::selection, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0]);
 		test_size = (test_size as f64 * 1.5) as usize;
 	}
 	table.printstd();
 
 	// Faster sorting algorithms.
-	table = table!(["", "Rust's sort", "sort::shell", "sort::weird", "sort::merge"]);
+	table = table!(["", "Rust's sort", "algos::shell", "algos::weird", "algos::merge"]);
 	let mut test_size = 3;
 	while test_size <= FAST_GOAL / MIN_TESTS {
 		table.add_row(row![test_size,
 			bench(|slice| slice.sort(), test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(sort::shell, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0,
+			bench(algos::shellsort::shell, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0,
 			bench(sort::weird, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(sort::merge, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0]);
+			bench(algos::mergesort::merge, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0]);
 		test_size = (test_size as f64 * 1.5) as usize;
 	}
 	table.printstd();

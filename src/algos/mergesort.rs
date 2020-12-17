@@ -1,3 +1,5 @@
+use crate::algos::insertion;
+
 pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
 	let mut i = 0;
 	let mut j = middle;

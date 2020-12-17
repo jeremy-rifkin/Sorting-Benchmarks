@@ -1,3 +1,5 @@
+use crate::algos::insertion_gap;
+
 pub fn shell_sequence<'a, T: Ord>(slice: &mut [T], gap_sequence: impl Iterator<Item = &'a usize>) {
 	for gap in gap_sequence {
 		if *gap < slice.len() {
