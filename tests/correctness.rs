@@ -67,6 +67,11 @@ fn test_heapsort_top_down() {
 }
 
 #[test]
+fn test_heapsort_bottom_up() {
+	test_sorting_algorithm(algos::heapsort::heapsort_bottom_up);
+}
+
+#[test]
 fn test_insertionsort() {
 	test_sorting_algorithm(algos::insertionsort::insertion);
 }
