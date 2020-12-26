@@ -1,4 +1,12 @@
-use crate::algos::insertion_gap;
+fn insertion_gap<T: Ord>(array: &mut [T], gap: usize) {
+	for mut i in gap..array.len() {
+		while i >= gap && array[i - gap] > array[i] {
+			array.swap(i, i - gap);
+			i -= gap;
+		}
+	}
+}
+
 
 pub fn shell_sequence<'a, T: Ord>(slice: &mut [T], gap_sequence: impl Iterator<Item = &'a usize>) {
 	for gap in gap_sequence {
@@ -8,6 +16,7 @@ pub fn shell_sequence<'a, T: Ord>(slice: &mut [T], gap_sequence: impl Iterator<I
 	}
 }
 
+#[allow(dead_code)]
 pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: impl Fn(usize) -> usize) {
 	let mut i = 0;
 	while gap_function(i) < slice.len() {
@@ -18,6 +27,7 @@ pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: impl Fn(usize) -> u
 	}
 }
 
+// TODO: compare multiple functions / sequences
 pub fn shell<T: Ord>(slice: &mut [T]) {
 	const DEFAULT_SEQUENCE: [usize; 12] = [
 		20622, 8855, 3802, 1633,
