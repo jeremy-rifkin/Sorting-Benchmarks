@@ -7,8 +7,7 @@ fn insertion_gap<T: Ord>(array: &mut [T], gap: usize) {
 	}
 }
 
-
-pub fn shell_sequence<'a, T: Ord>(slice: &mut [T], gap_sequence: impl Iterator<Item = &'a usize>) {
+pub fn shell_sequence<T: Ord>(slice: &mut [T], gap_sequence: &[usize]) {
 	for gap in gap_sequence {
 		if *gap < slice.len() {
 			insertion_gap(slice, *gap);
@@ -18,6 +17,8 @@ pub fn shell_sequence<'a, T: Ord>(slice: &mut [T], gap_sequence: impl Iterator<I
 
 #[allow(dead_code)]
 pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: impl Fn(usize) -> usize) {
+	// shell functions are typically ""almost" geometric sequences" so this step should take
+	// logarithmic time and be fairly inconsequential
 	let mut i = 0;
 	while gap_function(i) < slice.len() {
 		i += 1;
@@ -34,5 +35,5 @@ pub fn shell<T: Ord>(slice: &mut [T]) {
 		701, 301, 132, 57,
 		23, 10, 4, 1
 	];
-	shell_sequence(slice, DEFAULT_SEQUENCE.iter());
+	shell_sequence(slice, &DEFAULT_SEQUENCE[..]);
 }
