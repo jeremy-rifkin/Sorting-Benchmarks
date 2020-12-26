@@ -1,10 +1,10 @@
-pub fn bubble<T: Ord>(slice: &mut [T]) {
+pub fn bubble<T: Ord>(array: &mut[T]) {
 	let mut swapped = true;
 	while swapped {
 		swapped = false;
-		for i in 1..slice.len() {
-			if slice[i] < slice[i - 1] {
-				slice.swap(i, i - 1);
+		for i in 1..array.len() {
+			if array[i - 1] > array[i] {
+				array.swap(i - 1, i);
 				swapped = true;
 			}
 		}
