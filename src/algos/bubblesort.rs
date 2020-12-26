@@ -1,4 +1,4 @@
-pub fn bubble<T: Ord>(array: &mut[T]) {
+pub fn bubblesort<T: Ord>(array: &mut[T]) {
 	let mut swapped = true;
 	while swapped {
 		swapped = false;

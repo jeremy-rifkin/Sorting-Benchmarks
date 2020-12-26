@@ -1,4 +1,4 @@
-use crate::algos::insertion;
+use crate::algos;
 
 pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
 	let mut i = 0;
@@ -24,7 +24,7 @@ pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
 
 pub fn merge<T: Ord + Copy>(slice: &mut [T]) {
 	if slice.len() <= 32 {
-		insertion(slice);
+		algos::insertionsort(slice);
 		return;
 	}
 	let slice_len = slice.len();

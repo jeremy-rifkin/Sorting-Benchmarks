@@ -53,7 +53,7 @@ fn test_sorting_algorithm(mut algorithm: impl FnMut(&mut [i32])) {
 
 #[test]
 fn test_bubblesort() {
-	test_sorting_algorithm(algos::bubblesort::bubble);
+	test_sorting_algorithm(algos::bubblesort::bubblesort);
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn test_heapsort_bottom_up() {
 
 #[test]
 fn test_insertionsort() {
-	test_sorting_algorithm(algos::insertionsort::insertion);
+	test_sorting_algorithm(algos::insertionsort::insertionsort);
 }
 
 #[test]

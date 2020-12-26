@@ -10,7 +10,7 @@ pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
 	// This has O(N^1.5) time complexity.
 	let chunk_size = (slice.len() as f64).sqrt() as usize;
 	for chunk in slice.chunks_mut(chunk_size) {
-		algos::insertionsort::insertion(chunk);
+		algos::insertionsort::insertionsort(chunk);
 	}
 	// Merge these chunks together. Using a naive implementation, this would also be
 	// O(N^1.5) time complexity, but I decided to improve it using basic divide-and-conquer.
