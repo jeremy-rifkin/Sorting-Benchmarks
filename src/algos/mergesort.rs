@@ -48,7 +48,7 @@ fn merge<T: Ord + Copy>(slice: &mut [T], buffer: &mut Vec<T>) {
 		j += 1;
 		k += 1;
 	}
-	slice.copy_from_slice(&buffer);
+	slice.copy_from_slice(&buffer[..slice.len()]);
 }
 
 pub fn mergesort_repeated_alloc<T: Ord + Copy + Default>(array: &mut [T]) {
@@ -74,8 +74,7 @@ fn mergesort_pre_alloc_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut 
 	let middle = array.len() / 2;
 	mergesort_pre_alloc_r(&mut array[..middle], buffer);
 	mergesort_pre_alloc_r(&mut array[middle..], buffer);
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
-	merge(array, &mut buffer);
+	merge(array, buffer);
 }
 
 pub fn mergesort_hybrid<T: Ord + Copy + Default>(array: &mut [T]) {
@@ -90,8 +89,7 @@ fn mergesort_hybrid_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut Vec
 	let middle = array.len() / 2;
 	mergesort_pre_alloc_r(&mut array[..middle], buffer);
 	mergesort_pre_alloc_r(&mut array[middle..], buffer);
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
-	merge(array, &mut buffer);
+	merge(array, buffer);
 }
 
 fn merge_in_place_naive<T: Ord + Copy>(array: &mut [T]) {
@@ -124,15 +122,13 @@ fn merge_in_place_naive<T: Ord + Copy>(array: &mut [T]) {
 	}
 }
 
-pub fn mergesort_in_place_naive<T: Ord + Copy + std::fmt::Debug>(array: &mut [T]) {
-	println!("{:?}", array);
+pub fn mergesort_in_place_naive<T: Ord + Copy>(array: &mut [T]) {
 	if array.len() <= 1 {
 		return;
 	}
 	let middle = array.len() / 2;
 	mergesort_in_place_naive(&mut array[..middle]);
 	mergesort_in_place_naive(&mut array[middle..]);
-	println!("{:?}", array);
 	merge_in_place_naive(array);
 }
 
