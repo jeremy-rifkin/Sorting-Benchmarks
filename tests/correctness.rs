@@ -62,6 +62,21 @@ fn test_cocktail_shaker() {
 }
 
 #[test]
+fn test_selectionsort() {
+	test_sorting_algorithm(algos::selectionsort::selectionsort);
+}
+
+#[test]
+fn test_insertionsort() {
+	test_sorting_algorithm(algos::insertionsort::insertionsort);
+}
+
+#[test]
+fn test_shellsort() {
+	test_sorting_algorithm(algos::shellsort::shell);
+}
+
+#[test]
 fn test_heapsort_top_down() {
 	test_sorting_algorithm(algos::heapsort::heapsort_top_down);
 }
@@ -72,21 +87,6 @@ fn test_heapsort_bottom_up() {
 }
 
 #[test]
-fn test_insertionsort() {
-	test_sorting_algorithm(algos::insertionsort::insertionsort);
-}
-
-#[test]
 fn test_mergesort() {
 	test_sorting_algorithm(algos::mergesort::merge);
-}
-
-#[test]
-fn test_selectionsort() {
-	test_sorting_algorithm(algos::selectionsort::selection);
-}
-
-#[test]
-fn test_shellsort() {
-	test_sorting_algorithm(algos::shellsort::shell);
 }

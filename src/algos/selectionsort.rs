@@ -1,4 +1,4 @@
-pub fn selection<T: Ord + Copy>(slice: &mut [T]) {
+pub fn selectionsort<T: Ord + Copy>(slice: &mut [T]) {
 	for i in 0..(slice.len() - 1) {
 		let mut min = slice[i];
 		let mut min_index = i;
