@@ -1,11 +1,19 @@
-#[macro_use] extern crate prettytable;
 use std::time::Instant;
 use rand::prelude::*;
 use rand::Rng;
+use regex::Regex;
+use prettytable::*;
+
 mod algos;
 mod sort;
 
-fn bench(mut sort: impl FnMut(&mut [i32]), size: usize, count: usize, seed: u64) -> u128 {
+macro_rules! pair {
+	($f:expr) => {
+		($f, &Regex::new("::<.+>$").unwrap().replace(stringify!($f), ""))
+	};
+}
+
+fn bench(mut sort: impl FnMut(&mut [i32]), size: usize, count: usize, seed: u64) -> f64 {
 	let mut rng = StdRng::seed_from_u64(seed);
 	let mut test_vectors: Vec<Vec<i32>> = vec![vec![0; size]; count];
 	for i in 0..count {
@@ -26,38 +34,45 @@ fn bench(mut sort: impl FnMut(&mut [i32]), size: usize, count: usize, seed: u64)
 		assert!(test_vectors[i].windows(2).all(|slice| slice[0] <= slice[1]));
 		sum += results[i];
 	}
-	sum / count as u128
+	sum as f64 / count as f64
 }
 
 fn main() {
-	const SLOW_GOAL: usize = 16384;
-	const FAST_GOAL: usize = SLOW_GOAL * 4;
-	const MIN_TESTS: usize = 4;
-	let seed: u64 = thread_rng().gen();
-	println!("Seed: {}", seed);
-
-	// Slower sorting algorithms.
-	let mut table = table!(["", "algos::insertion", "algos::bubble", "algos::selection"]);
-	let mut test_size = 3;
-	while test_size <= SLOW_GOAL / MIN_TESTS {
-		table.add_row(row![test_size,
-			bench(algos::insertion, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(algos::bubblesort::bubble, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(algos::selectionsort::selection, test_size, SLOW_GOAL / test_size, seed) as f64 / 1000000.0]);
-		test_size = (test_size as f64 * 1.5) as usize;
+	let seed: u64 = 0x2BAD;
+	let algorithms: [(for<'r> fn(&'r mut [i32]), &str); 5] = [
+		pair!(algos::mergesort_pre_alloc::<i32>),
+		pair!(algos::mergesort_repeated_alloc::<i32>),
+		pair!(algos::mergesort_hybrid::<i32>),
+		pair!(algos::mergesort_in_place_naive::<i32>),
+		pair!(algos::mergesort_in_place::<i32>)
+	];
+	let mut table = Table::new();
+	let mut header = vec![""];
+	for a in algorithms.iter() {
+		header.push(a.1);
 	}
-	table.printstd();
-
-	// Faster sorting algorithms.
-	table = table!(["", "Rust's sort", "algos::shell", "algos::weird", "algos::merge"]);
-	let mut test_size = 3;
-	while test_size <= FAST_GOAL / MIN_TESTS {
-		table.add_row(row![test_size,
-			bench(|slice| slice.sort(), test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(algos::shellsort::shell, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(sort::weird, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0,
-			bench(algos::mergesort::merge, test_size, FAST_GOAL / test_size, seed) as f64 / 1000000.0]);
-		test_size = (test_size as f64 * 1.5) as usize;
+	header.push("rust::sort");
+	table.add_row(Row::new(header.iter().map(|x| Cell::new(x)).collect()));
+	let mut test_size = 10;
+	let mut algorithm_enable_flags = vec![true; algorithms.len()];
+	while test_size <= 1_000_000 {
+		let mut row = vec![Cell::new(&test_size.to_string())];
+		for (i, a) in algorithms.iter().enumerate() {
+			println!("{} {}", test_size, a.1);
+			if algorithm_enable_flags[i] {
+				let b = bench(a.0, test_size, 10, seed) / 1000000.0;
+				row.push(Cell::new(&(b.to_string())));
+				// disable algorithm if it was exceedingly slow for this test
+				if b >= 1000.0 {
+					algorithm_enable_flags[i] = false;
+				}
+			} else {
+				row.push(Cell::new("-"));
+			}
+		}
+		row.push(Cell::new(&(bench(|slice| slice.sort(), test_size, 10, seed) / 1000000.0).to_string()));
+		table.add_row(Row::new(row));
+		test_size *= 10;
 	}
 	table.printstd();
 }
