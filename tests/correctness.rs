@@ -87,6 +87,26 @@ fn test_heapsort_bottom_up() {
 }
 
 #[test]
-fn test_mergesort() {
-	test_sorting_algorithm(algos::mergesort::merge);
+fn test_mergesort_repeated_alloc() {
+	test_sorting_algorithm(algos::mergesort::mergesort_repeated_alloc);
+}
+
+#[test]
+fn test_mergesort_pre_alloc() {
+	test_sorting_algorithm(algos::mergesort::mergesort_pre_alloc);
+}
+
+#[test]
+fn test_mergesort_hybrid() {
+	test_sorting_algorithm(algos::mergesort::mergesort_hybrid);
+}
+
+#[test]
+fn test_mergesort_in_place_naive() {
+	test_sorting_algorithm(algos::mergesort::mergesort_in_place_naive);
+}
+
+#[test]
+fn test_mergesort_in_place() {
+	test_sorting_algorithm(algos::mergesort::mergesort_in_place);
 }
