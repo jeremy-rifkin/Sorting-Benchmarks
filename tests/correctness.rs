@@ -16,8 +16,8 @@ fn create_sorted_array() -> [i32; TEST_ARRAY_SIZE] {
 
 fn create_reversed_array() -> [i32; TEST_ARRAY_SIZE] {
 	let mut array: [i32; TEST_ARRAY_SIZE] = [0; TEST_ARRAY_SIZE];
-	for i in (0..TEST_ARRAY_SIZE).rev() {
-		array[i] = i as i32;
+	for (i, v) in (0..TEST_ARRAY_SIZE).rev().enumerate() {
+		array[i] = v as i32;
 	}
 	return array;
 }
