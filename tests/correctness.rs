@@ -109,6 +109,11 @@ fn test_mergesort_in_place() {
 }
 
 #[test]
+fn test_quicksort() {
+	test_sorting_algorithm(algos::quicksort);
+}
+
+#[test]
 fn test_weird() {
 	test_sorting_algorithm(sort::weird);
 }
