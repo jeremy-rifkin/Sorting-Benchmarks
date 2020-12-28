@@ -1,8 +1,7 @@
-use rand::prelude::*;
 use crate::algos;
 
 /*
- * Miscellaneous stuff
+ * Miscellaneous sorting stuff
  */
 
 pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
@@ -32,8 +31,7 @@ pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
 	}
 }
 
-pub fn bogo<T: Ord>(slice: &mut [T]) {
-	//while !slice.windows(2).all(|slice| slice[0] <= slice[1]) {
-	//	slice.shuffle();
-	//}
+// wrapper for rust's sorting algorithm
+pub fn rustsort<T: Ord>(slice: &mut [T]) {
+	slice.sort();
 }

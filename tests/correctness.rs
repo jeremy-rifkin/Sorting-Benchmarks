@@ -1,11 +1,35 @@
 use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::{RngCore, SeedableRng};
 
 use sorting_benchmarks::*;
 use utils::*;
 
 const TEST_ARRAY_SIZE: usize = 1000;
 const FIXED_SEED: u64 = 0xB000000; // spooky
+
+fn create_sorted_array(size: usize) -> Vec<i32> {
+	let mut array = vec![0; size];
+	for i in 0..size {
+		array[i] = i as i32;
+	}
+	return array;
+}
+
+fn create_reversed_array(size: usize) -> Vec<i32> {
+	let mut array = vec![0; size];
+	for (i, v) in (0..size).rev().enumerate() {
+		array[i] = v as i32;
+	}
+	return array;
+}
+
+fn create_random_array(size: usize, rng: &mut SmallRng) -> Vec<i32> {
+	let mut array = vec![0; size];
+	for i in 0..size {
+		array[i] = rng.next_u32() as i32;
+	}
+	return array;
+}
 
 fn test_sorting_algorithm(mut algorithm: impl FnMut(&mut [i32])) {
 	let mut array = create_sorted_array(TEST_ARRAY_SIZE);

@@ -1,34 +1,27 @@
-use rand::RngCore;
-use rand::rngs::SmallRng;
-
 #[macro_export] macro_rules! pair {
 	($f:expr) => {
-		($f, &Regex::new("::<.+>$").unwrap().replace(stringify!($f), ""))
+		($f, (&Regex::new("::<.+>$").unwrap().replace(stringify!($f), "")).to_string())
 	};
 }
 
-pub fn create_sorted_array(size: usize) -> Vec<i32> {
-	let mut array = vec![0; size];
-	for i in 0..size {
-		array[i] = i as i32;
+// returns number with comma separators (i.e. 1000000 -> "1,000,000")
+pub fn commafy(mut num: usize) -> String {
+	let log = (num as f64).log10() as usize;
+	let len = log + log / 3 + 1;
+	let mut s = vec![b'x'; len];
+	let mut i = 0;
+	let mut count = 0;
+	while num > 0 {
+		if count > 0 && count % 3 == 0 {
+			s[len - i - 1] = b',';
+			i += 1;
+		}
+		s[len - i - 1] = b'0' + (num % 10) as u8;
+		i += 1;
+		num /= 10;
+		count += 1;
 	}
-	return array;
-}
-
-pub fn create_reversed_array(size: usize) -> Vec<i32> {
-	let mut array = vec![0; size];
-	for (i, v) in (0..size).rev().enumerate() {
-		array[i] = v as i32;
-	}
-	return array;
-}
-
-pub fn create_random_array(size: usize, rng: &mut SmallRng) -> Vec<i32> {
-	let mut array = vec![0; size];
-	for i in 0..size {
-		array[i] = rng.next_u32() as i32;
-	}
-	return array;
+	return String::from_utf8(s).unwrap();
 }
 
 pub fn verify_sorted(array: &[i32]) {
