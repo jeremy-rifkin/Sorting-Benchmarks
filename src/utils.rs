@@ -1,6 +1,9 @@
-#[macro_export] macro_rules! pair {
-	($f:expr) => {
-		($f, (&Regex::new("::<.+>$").unwrap().replace(stringify!($f), "")).to_string())
+// this macro is shorthand for adding algorithms to to benchmark
+// input: function pointer, string
+// output: tuple (fn pointer, fn name, string)
+#[macro_export] macro_rules! sfn {
+	($f:expr, $c:literal) => {
+		($f, (&Regex::new("::<.+>$").unwrap().replace(stringify!($f), "")).to_string(), $c)
 	};
 }
 
