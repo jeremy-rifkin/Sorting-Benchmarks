@@ -39,6 +39,14 @@ fn destroy_cache() {
 }
 
 // benchmarks a sorting algorithm
+// args
+//  sort: function pointer for the algorithm to use
+//  size: array size to test
+//  n_tests: maximum number of tests to perform
+// return
+//  None if less than 30 tests could be completed within 10seconds (excluding cache buster and setup)
+//  BenchmarkResult otherwise
+// None return is used as a flag in the driver code to stop benchmarking an algorithm after it becomes unbearably slow.
 fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkResult> {
 	// setup tests
 	let mut test_vectors: Vec<Vec<i32>> = vec![vec![0; size]; n_tests];
@@ -50,29 +58,33 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	}
 	// run tests
 	let mut results: Vec<u64> = vec![0; n_tests];
-	let mut running_sum = 0.0;
-	let mut completed = 0;
+	let mut running_sum = 0u64; // running sum of the results
+	let mut completed = 0; // tests completed counter
 	for i in 0..n_tests {
+		// flush cpu cache
 		destroy_cache();
+		// perform test
 		let start = Instant::now();
 		sort(&mut test_vectors[i]);
-		completed += 1;
 		results[i] = start.elapsed().as_nanos() as u64;
-		running_sum += results[i] as f64;
-		if running_sum >= 10e9 {
+		// update counters
+		completed += 1;
+		running_sum += results[i];
+		// if runtime exceeds 10 seconds...
+		if running_sum >= 10e9 as u64 {
 			break;
-			//return Option::None;
 		}
 	}
+	// if not enough tests completed, return None
 	if completed < 30 {
 		return Option::None;
 	}
-	// verify correctness
+	// verify correctness just for good measure
 	for i in 0..completed {
 		utils::verify_sorted(&test_vectors[i]);
 	}
-	// mean and stdev
-	let mean = running_sum / completed as f64;
+	// return result
+	let mean = running_sum as f64 / completed as f64;
 	Option::Some(BenchmarkResult {
 		mean,
 		stdev: stdev(&results[..completed], mean)
