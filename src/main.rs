@@ -92,30 +92,33 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 }
 
 fn main() {
-	let algorithms: Vec<(fn(&mut [i32]), String)> = vec![
-		pair!(algos::bubblesort::<i32>),
-		pair!(algos::cocktail_shaker::<i32>),
-		pair!(algos::selectionsort::<i32>),
-		pair!(algos::insertionsort::<i32>),
-		pair!(algos::shell::<i32>),
-		pair!(algos::mergesort_pre_alloc::<i32>),
-		pair!(algos::mergesort_repeated_alloc::<i32>),
-		pair!(algos::mergesort_hybrid::<i32>),
-		pair!(algos::mergesort_in_place_naive::<i32>),
-		pair!(algos::mergesort_in_place::<i32>),
-		pair!(algos::heapsort_bottom_up::<i32>),
-		pair!(algos::heapsort_top_down::<i32>),
-		pair!(sort::weird::<i32>),
-		pair!(sort::rustsort::<i32>)
+	let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
+		sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
+		sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
+		sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
+		sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
+		sfn!(algos::shell::<i32>,                    "O(n^(4/3))"),
+		sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
+		sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
+		sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
+		sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
+		sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
+		sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
+		sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
+		sfn!(sort::weird::<i32>,                     "O(n^(3/2))"),
+		sfn!(sort::rustsort::<i32>,                  "O(n log n)")
 	];
 	// run tests
-	let mut results = vec![Vec::new(); algorithms.len()];
-	let mut header = vec![String::from("")];
+	let mut results = vec![Vec::new(); algorithms.len()]; // 2d matrix of results
+	let mut header = vec![String::from("")]; // start building the header now
 	let mut test_size = 10;
 	let n_tests = 200;
+	// This flag array is to prevent algorithms from being benchmarked after a certain point - don't
+	// want to run bubblesort on a million items.
 	let mut algorithm_enable_flags = vec![true; algorithms.len()];
 	while test_size <= 1_000_000 {
 		header.push(utils::commafy(test_size));
+		// test every algorithm for this test size
 		for (i, a) in algorithms.iter().enumerate() {
 			println!("{} {}", utils::commafy(test_size), a.1);
 			if algorithm_enable_flags[i] {
@@ -130,7 +133,7 @@ fn main() {
 		}
 		test_size *= 10;
 	}
-	// delimited table
+	// print a delimited table (helpful for pasting into excel)
 	for cell in header.iter() {
 		print!("{} ", cell);
 	}
@@ -148,7 +151,7 @@ fn main() {
 		}
 		print!("\n");
 	}
-	// make table
+	// make pretty table
 	let mut table = Table::new();
 	table.add_row(Row::new(header.iter().map(|x| Cell::new(x)).collect()));
 	for (i, a) in algorithms.iter().enumerate() {
@@ -159,7 +162,7 @@ fn main() {
 			} else {
 				let result = result.as_ref().unwrap();
 				let v = result.mean / 1e6;
-				let ci = 2.0 * result.stdev / 1e6;
+				let ci = 2.0 * result.stdev / 1e6; // +/- 2 standard deviations = 95% CI
 				let s = format!("{:.5} ± {:.5} ({:.0}%)", v, ci, ci / v * 100.0);
 				row.push(Cell::new(&s));
 			}
