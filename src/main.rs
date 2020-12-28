@@ -105,6 +105,7 @@ fn main() {
 		pair!(algos::mergesort_in_place::<i32>),
 		pair!(algos::heapsort_bottom_up::<i32>),
 		pair!(algos::heapsort_top_down::<i32>),
+		pair!(algos::quicksort::<i32>),
 		pair!(sort::weird::<i32>),
 		pair!(sort::rustsort::<i32>)
 	];
