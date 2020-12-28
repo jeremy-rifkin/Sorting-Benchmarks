@@ -83,3 +83,8 @@ fn test_mergesort_in_place_naive() {
 fn test_mergesort_in_place() {
 	test_sorting_algorithm(algos::mergesort::mergesort_in_place);
 }
+
+#[test]
+fn test_weird() {
+	test_sorting_algorithm(sort::weird);
+}
