@@ -25,7 +25,7 @@ pub fn create_reversed_array(size: usize) -> Vec<i32> {
 
 pub fn create_random_array(size: usize, rng: &mut SmallRng) -> Vec<i32> {
 	let mut array = vec![0; size];
-	for i in (0..size).rev() {
+	for i in 0..size {
 		array[i] = rng.next_u32() as i32;
 	}
 	return array;
