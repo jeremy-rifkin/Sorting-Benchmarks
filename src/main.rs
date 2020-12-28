@@ -19,12 +19,12 @@ struct BenchmarkResult {
 
 // computes the sample standard deviation of a Vec<u64>
 // mean passed as a parameter to take advantage of pre-computed value
-fn stdev(array: &Vec<u64>, completed: usize, mean: f64) -> f64 {
+fn stdev(array: &[u64], mean: f64) -> f64 {
 	let mut sum = 0.0;
-	for i in 0..completed {
+	for i in 0..array.len() {
 		sum += (array[i] as f64 - mean).powi(2);
 	}
-	sum /= (completed - 1) as f64;
+	sum /= (array.len() - 1) as f64;
 	sum.sqrt()
 }
 
@@ -75,7 +75,7 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	let mean = running_sum / completed as f64;
 	Option::Some(BenchmarkResult {
 		mean,
-		stdev: stdev(&results, completed, mean)
+		stdev: stdev(&results[..completed], mean)
 	})
 }
 
