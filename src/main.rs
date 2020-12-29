@@ -108,7 +108,9 @@ fn main() {
 		sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
 		sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
 		sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
-		sfn!(algos::quicksort::<i32>,                "O(n log n)"),
+		sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
+		sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
+		sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
 		sfn!(sort::weird::<i32>,                     "O(n^(3/2))"),
 		sfn!(sort::rustsort::<i32>,                  "O(n log n)")
 	];
