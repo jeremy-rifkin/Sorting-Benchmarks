@@ -182,7 +182,7 @@ fn wsort<T: Ord + Copy>(xs: &mut [T], mut l: usize, u: usize, mut w: usize) {
 }
 
 fn wmerge<T: Ord + Copy>(xs: &mut [T], mut i: usize, m: usize, mut j: usize, n: usize, mut w: usize) {
-    while i < m && j < n {
+	while i < m && j < n {
 		#[allow(unused_assignments)]
 		let mut k: usize = 0;
 		if xs[i] < xs[j] {
@@ -195,12 +195,12 @@ fn wmerge<T: Ord + Copy>(xs: &mut [T], mut i: usize, m: usize, mut j: usize, n: 
 		xs.swap(w, k);
 		w += 1;
 	}
-    while i < m {
+	while i < m {
 		xs.swap(w, i);
 		w += 1;
 		i += 1;
 	}
-    while j < n {
+	while j < n {
 		xs.swap(w, j);
 		w += 1;
 		j += 1;
