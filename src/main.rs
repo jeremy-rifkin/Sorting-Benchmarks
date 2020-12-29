@@ -32,6 +32,7 @@ fn stdev(array: &[u64], mean: f64) -> f64 {
 // flush cpu cache between benchmarks
 // 20M / 4 bytes (i32)
 const DESTROYER_SIZE: usize = 20_000_000 / 4;
+#[allow(dead_code)]
 fn destroy_cache() {
 	let mut a = vec![0; DESTROYER_SIZE];
 	for i in 0..DESTROYER_SIZE {
