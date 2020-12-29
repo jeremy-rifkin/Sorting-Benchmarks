@@ -18,17 +18,6 @@ struct BenchmarkResult {
 	count: usize
 }
 
-// computes the sample standard deviation of a Vec<u64>
-// mean passed as a parameter to take advantage of pre-computed value
-fn stdev(array: &[u64], mean: f64) -> f64 {
-	let mut sum = 0.0;
-	for i in 0..array.len() {
-		sum += (array[i] as f64 - mean).powi(2);
-	}
-	sum /= (array.len() - 1) as f64;
-	sum.sqrt()
-}
-
 // flush cpu cache between benchmarks
 // 20M / 4 bytes (i32)
 const DESTROYER_SIZE: usize = 20_000_000 / 4;
@@ -48,7 +37,8 @@ fn destroy_cache() {
 // return
 //  None if less than 30 tests could be completed within 10seconds (excluding cache buster and setup)
 //  BenchmarkResult otherwise
-// None return is used as a flag in the driver code to stop benchmarking an algorithm after it becomes unbearably slow.
+// None return is used as a flag in the driver code to stop benchmarking an algorithm after it
+// becomes unbearably slow.
 fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkResult> {
 	// setup tests
 	let mut test_vectors: Vec<Vec<i32>> = vec![vec![0; size]; n_tests];
@@ -59,7 +49,7 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 		}
 	}
 	// run tests
-	let mut results: Vec<u64> = vec![0; n_tests];
+	let mut results: Vec<u64> = Vec::with_capacity(n_tests);
 	let mut running_sum = 0u64; // running sum of the results
 	let mut completed = 0; // tests completed counter
 	for i in 0..n_tests {
@@ -68,7 +58,7 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 		// perform test
 		let start = Instant::now();
 		sort(&mut test_vectors[i]);
-		results[i] = start.elapsed().as_nanos() as u64;
+		results.push(start.elapsed().as_nanos() as u64);
 		// update counters
 		completed += 1;
 		running_sum += results[i];
@@ -85,12 +75,37 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	for i in 0..completed {
 		utils::verify_sorted(&test_vectors[i]);
 	}
-	// return result
-	let mean = running_sum as f64 / completed as f64;
+	// compute stats
+	// We had an issue with a few benchmarks randomly having massive standard deviations every time
+	// we'd run the benchmark just a couple results would have anomalies and there wasn't any
+	// consistency or pattern to which benchmarks would have anomalies.
+	// The reason for the massive standard deviations was due to just a couple (usually just 1)
+	// extraneous results in the results vector (e.g. in a benchmark whose result's mean was
+	//  ~2,200ns, there was an outlier of 112,600ns blowing up the standard deviation calculation).
+	// This filter here uses Tukey's method to filter out outliers.
+	let q = utils::quartiles(&results);
+	//let __results = results.clone(); // debug stuff
+	let results: Vec<u64> = results.into_iter()
+							.filter(|item| utils::tukey(*item, &q, 3.0))
+							.collect();
+	let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
+	let stdev = utils::stdev(&results, mean);
+
+	// debug stuff
+	//let mean = running_sum as f64 / completed as f64;
+	//let v = mean / 1e6;
+	//// +/- 1.96 standard deviations = 95% CI
+	//let ci = 1.96 * utils::stdev(&__results[..completed], mean) / 1e6 / (completed as f64).sqrt();
+	//if ci / v * 100.0 >= 10.0 {
+	//	println!("{:.0}% {:?}", ci / v * 100.0, __results);
+	//	println!("{:?}", q);
+	//	println!("{} {} {:?}", mean, stdev, results);
+	//}
+
 	Option::Some(BenchmarkResult {
 		mean,
-		stdev: stdev(&results[..completed], mean),
-		count: completed
+		stdev,
+		count: results.len()
 	})
 }
 

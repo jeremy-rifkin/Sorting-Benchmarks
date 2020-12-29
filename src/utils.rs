@@ -30,3 +30,51 @@ pub fn commafy(mut num: usize) -> String {
 pub fn verify_sorted(array: &[i32]) {
 	assert!(array.windows(2).all(|slice| slice[0] <= slice[1]));
 }
+
+// computes the sample standard deviation of a Vec<u64>
+// mean passed as a parameter to take advantage of pre-computed value
+pub fn stdev(array: &[u64], mean: f64) -> f64 {
+	let mut sum = 0.0;
+	for i in 0..array.len() {
+		sum += (array[i] as f64 - mean).powi(2);
+	}
+	sum /= (array.len() - 1) as f64;
+	sum.sqrt()
+}
+
+#[derive(Debug)]
+pub struct QuartileDescriptor {
+	q1: f64,
+	q2: f64,
+	q3: f64,
+	iqr: f64
+}
+
+fn median(array: &[u64]) -> f64 {
+	if array.len() % 2 == 0 {
+		(array[array.len() / 2 - 1] + array[array.len() / 2]) as f64 / 2.0
+	} else {
+		array[array.len() / 2] as f64
+	}
+}
+
+pub fn quartiles(array: &Vec<u64>) -> QuartileDescriptor {
+	let mut array = array.clone();
+	array.sort();
+	if array.len() % 2 == 0 {
+		let q1 = median(&array[..array.len() / 2]) as f64;
+		let q2 = median(&array);
+		let q3 = median(&array[array.len() / 2..]) as f64;
+		QuartileDescriptor {q1, q2, q3, iqr: q3 - q1}
+	} else {
+		let q1 = median(&array[..array.len() / 2]) as f64;
+		let q2 = median(&array);
+		let q3 = median(&array[array.len() / 2 + 1..]) as f64;
+		QuartileDescriptor {q1, q2, q3, iqr: q3 - q1}
+	}
+}
+
+pub fn tukey(item: u64, q: &QuartileDescriptor, threshold: f64) -> bool {
+	let item = item as f64;
+	!(item > q.q3 + threshold * q.iqr || item < q.q1 - threshold * q.iqr)
+}
