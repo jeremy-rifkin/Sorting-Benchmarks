@@ -1,6 +1,11 @@
+use rand::rngs::SmallRng;
+use rand::{Rng, RngCore, SeedableRng};
 use crate::algos;
 
-fn partition<T: Ord + Copy>(slice: &mut [T]) -> usize {
+fn partition<T: Ord + Copy>(slice: &mut [T], rng: &mut SmallRng) -> usize {
+    let pivot_index = rng.gen_range(0..slice.len());
+    //let pivot_index = slice.len() / 2;
+    slice.swap(pivot_index, slice.len() - 1);
     let pivot = slice[slice.len() - 1];
     let mut i = 0;
     for j in 0..(slice.len() - 1) {
@@ -13,13 +18,17 @@ fn partition<T: Ord + Copy>(slice: &mut [T]) -> usize {
     return i;
 }
 
-pub fn quicksort<T: Ord + Copy>(array: &mut [T]) {
+pub fn quicksort_rng<T: Ord + Copy>(array: &mut [T], rng: &mut SmallRng) {
 	if array.len() <= 32 {
         algos::insertionsort(array);
         return;
     }
-    let pivot = partition(array);
-    let array_len = array.len();
-    quicksort(&mut array[0..pivot]);
-    quicksort(&mut array[pivot..array_len]);
+    let pivot = partition(array, rng);
+    quicksort_rng(&mut array[..pivot], rng);
+    quicksort_rng(&mut array[(pivot + 1)..], rng);
+}
+
+pub fn quicksort<T: Ord + Copy>(array: &mut [T]) {
+    let mut rng = SmallRng::from_entropy();
+    quicksort_rng(array, &mut rng);
 }
