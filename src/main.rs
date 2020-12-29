@@ -95,20 +95,20 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 
 fn main() {
 	let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
-		//sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
-		//sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
-		//sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
+		sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
+		sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
+		sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
 		sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
 		sfn!(algos::shell::<i32>,                    "O(n^(4/3))"),
 		sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
-		//sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
-		//sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
-		//sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
-		//sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
+		sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
+		sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
+		sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
+		sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
 		sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
-		//sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
+		sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
 		sfn!(algos::quicksort::<i32>,                "O(n log n)"),
-		//sfn!(sort::weird::<i32>,                     "O(n^(3/2))"),
+		sfn!(sort::weird::<i32>,                     "O(n^(3/2))"),
 		sfn!(sort::rustsort::<i32>,                  "O(n log n)")
 	];
 	// run tests
