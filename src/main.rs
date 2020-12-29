@@ -14,7 +14,8 @@ const SEED: u64 = 2222;
 #[derive(Debug)]
 struct BenchmarkResult {
 	mean: f64,
-	stdev: f64
+	stdev: f64,
+	count: usize
 }
 
 // computes the sample standard deviation of a Vec<u64>
@@ -87,7 +88,8 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	let mean = running_sum as f64 / completed as f64;
 	Option::Some(BenchmarkResult {
 		mean,
-		stdev: stdev(&results[..completed], mean)
+		stdev: stdev(&results[..completed], mean),
+		count: completed
 	})
 }
 
@@ -162,7 +164,8 @@ fn main() {
 			} else {
 				let result = result.as_ref().unwrap();
 				let v = result.mean / 1e6;
-				let ci = 2.0 * result.stdev / 1e6; // +/- 2 standard deviations = 95% CI
+				// +/- 1.96 standard deviations = 95% CI
+				let ci = 1.96 * result.stdev / 1e6 / (result.count as f64).sqrt();
 				let s = format!("{:.5} ± {:.5} ({:.0}%)", v, ci, ci / v * 100.0);
 				row.push(Cell::new(&s));
 			}
