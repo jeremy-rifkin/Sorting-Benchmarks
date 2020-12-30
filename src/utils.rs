@@ -128,32 +128,6 @@ pub fn gamma(x: f64) -> f64 {
     }
 }
 
-
-// implementation of a two sample t test
-fn pochhammer(q: f64, n: i32) -> f64 {
-	if n == 0 {
-		1.0
-	} else {
-		let mut acc = 1.0;
-		for m in 0..n {
-			acc *= q + m as f64;
-		}
-		acc
-	}
-}
-
-fn factorial(n: i32) -> f64 {
-	if n <= 1 {
-		1.0
-	} else {
-		let mut acc = 1.0;
-		for i in 2..=n {
-			acc *= i as f64;
-		}
-		acc
-	}
-}
-
 // computes part of the hypergeometric function while avoiding overflow from the rising factorials
 // and factorials on both the top and bottom
 //   (a)_n (b)_n    1
@@ -171,32 +145,6 @@ fn pochhammer_factorial(a: f64, b: f64, c: f64, n: i32) -> f64 {
 	acc
 }
 
-#[allow(non_snake_case)]
-fn hypergeometric2F1___(a: f64, b: f64, c: f64, z: f64) -> f64 {
-	assert!(c >= 0.0);
-	assert!(z.abs() < 1.0);
-	let mut sum = 0.0;
-	let mut n = 0;
-	loop {
-		let _a = pochhammer(a, n);
-		let _b = pochhammer(b, n);
-		let _c = pochhammer(c, n);
-		let _p = z.powi(n);
-		let _f = factorial(n);
-		//let v = pochhammer(a, n) * pochhammer(b, n) / pochhammer(c, n) * z.powi(n) / factorial(n);
-		let v = pochhammer(a, n) / pochhammer(c, n) * z.powi(n) * pochhammer(b, n) / factorial(n);
-		sum += v;
-		if v.abs() < 0.0001 {
-			break;
-		}
-		if n >= 10_000 || v.is_infinite() {
-			println!("{} {}", v, n);
-			panic!("at the disco");
-		}
-		n += 1;
-	}
-	sum
-}
 #[allow(non_snake_case)]
 fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 	assert!(c >= 0.0);
@@ -219,10 +167,6 @@ fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 }
 
 pub fn t_cdf(x: f64, v: f64) -> f64 {
-	//println!("t_cdf({}, {})", x, v);
-	//println!("gamma({}) = {}", (v + 1.0) / 2.0, gamma((v + 1.0) / 2.0));
-	//println!("hypergeometric2F1({}, {}, {}, {}) = {}", 0.5, (v + 1.0) / 2.0, 1.5, -x*x/v, hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x*x/v));
-	//println!("/ {}", (v * f64::consts::PI).sqrt() * gamma(v / 2.0));
 	0.5 + x * gamma((v + 1.0) / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x*x/v) / ((v * f64::consts::PI).sqrt() * gamma(v / 2.0))
 }
 
