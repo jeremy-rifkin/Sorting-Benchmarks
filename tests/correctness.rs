@@ -109,17 +109,17 @@ fn test_mergesort_in_place() {
 }
 
 #[test]
-fn quicksort_end() {
+fn test_quicksort_end() {
 	test_sorting_algorithm(algos::quicksort_end);
 }
 
 #[test]
-fn quicksort_random() {
+fn test_quicksort_random() {
 	test_sorting_algorithm(algos::quicksort_random);
 }
 
 #[test]
-fn quicksort_hybrid() {
+fn test_quicksort_hybrid() {
 	test_sorting_algorithm(algos::quicksort_hybrid);
 }
 
