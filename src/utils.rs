@@ -42,6 +42,7 @@ pub fn stdev(array: &[u64], mean: f64) -> f64 {
 	sum.sqrt()
 }
 
+// struct used for describing the quartiles of a data set
 #[derive(Debug)]
 pub struct QuartileDescriptor {
 	q1: f64,
@@ -50,6 +51,7 @@ pub struct QuartileDescriptor {
 	iqr: f64
 }
 
+// returns the median value of an array
 fn median(array: &[u64]) -> f64 {
 	if array.len() % 2 == 0 {
 		(array[array.len() / 2 - 1] + array[array.len() / 2]) as f64 / 2.0
@@ -58,6 +60,7 @@ fn median(array: &[u64]) -> f64 {
 	}
 }
 
+// finds the quartiles and iqr of an array
 pub fn quartiles(array: &Vec<u64>) -> QuartileDescriptor {
 	let mut array = array.clone();
 	array.sort();
@@ -74,6 +77,7 @@ pub fn quartiles(array: &Vec<u64>) -> QuartileDescriptor {
 	}
 }
 
+// filter function to filter out outliers in a data set
 pub fn tukey(item: u64, q: &QuartileDescriptor, threshold: f64) -> bool {
 	let item = item as f64;
 	!(item > q.q3 + threshold * q.iqr || item < q.q1 - threshold * q.iqr)
