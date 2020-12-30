@@ -8,14 +8,30 @@ mod algos;
 mod sort;
 mod utils;
 
-const SEED: u64 = 2222;
+const MIN_TEST_SIZE: usize = 10;
+const MAX_TEST_SIZE: usize = 1000; //1_000_000;
+const N_TESTS: usize = 200;
 
-#[derive(Clone)]
-#[derive(Debug)]
+const RNG_SEED: u64 = 2222;
+const RUNTIME_LIMIT: u64 = 10e9 as u64;
+const MIN_ACCEPTABLE_TESTS: usize = 30;
+const OUTLIER_COEFFICIENT: f64 = 3.0;
+
+#[derive(Clone, Debug)]
 struct BenchmarkResult {
 	mean: f64,
 	stdev: f64,
-	count: usize
+	count: usize,
+	is_fastest: bool
+}
+
+impl std::fmt::Display for BenchmarkResult {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let v = self.mean / 1e6;
+		// +/- 1.96 standard deviations = 95% CI
+		let ci = 1.96 * self.stdev / 1e6 / (self.count as f64).sqrt();
+		write!(f, "{:.5} ± {:.5} ({:.0}%)", v, ci, ci / v * 100.0)
+	}
 }
 
 // flush cpu cache between benchmarks
@@ -42,7 +58,7 @@ fn destroy_cache() {
 fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkResult> {
 	// setup tests
 	let mut test_vectors: Vec<Vec<i32>> = vec![vec![0; size]; n_tests];
-	let mut rng = SmallRng::seed_from_u64(SEED);
+	let mut rng = SmallRng::seed_from_u64(RNG_SEED);
 	for i in 0..n_tests {
 		for j in 0..size {
 			test_vectors[i][j] = rng.next_u32() as i32;
@@ -63,12 +79,12 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 		completed += 1;
 		running_sum += results[i];
 		// if runtime exceeds 10 seconds...
-		if running_sum >= 10e9 as u64 {
+		if running_sum >= RUNTIME_LIMIT {
 			break;
 		}
 	}
 	// if not enough tests completed, return None
-	if completed < 30 {
+	if completed < MIN_ACCEPTABLE_TESTS {
 		return Option::None;
 	}
 	// verify correctness just for good measure
@@ -86,7 +102,7 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	let q = utils::quartiles(&results);
 	//let __results = results.clone(); // debug stuff
 	let results: Vec<u64> = results.into_iter()
-							.filter(|item| utils::tukey(*item, &q, 3.0))
+							.filter(|item| utils::tukey(*item, &q, OUTLIER_COEFFICIENT))
 							.collect();
 	let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
 	let stdev = utils::stdev(&results, mean);
@@ -105,7 +121,8 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	Option::Some(BenchmarkResult {
 		mean,
 		stdev,
-		count: results.len()
+		count: results.len(),
+		is_fastest: false // field will be used for display
 	})
 }
 
@@ -136,12 +153,12 @@ fn main() {
 	// run tests
 	let mut results = vec![Vec::new(); algorithms.len()]; // 2d matrix of results
 	let mut header = vec![String::from("")]; // start building the header now
-	let mut test_size = 10;
-	let n_tests = 200;
+	let mut test_size = MIN_TEST_SIZE;
+	let n_tests = N_TESTS;
 	// This flag array is to prevent algorithms from being benchmarked after a certain point - don't
 	// want to run bubblesort on a million items.
 	let mut algorithm_enable_flags = vec![true; algorithms.len()];
-	while test_size <= 1_000_000 {
+	while test_size <= MAX_TEST_SIZE {
 		header.push(utils::commafy(test_size));
 		// test every algorithm for this test size
 		for (i, a) in algorithms.iter().enumerate() {
@@ -185,12 +202,7 @@ fn main() {
 			if result.is_none() {
 				row.push(Cell::new("-"));
 			} else {
-				let result = result.as_ref().unwrap();
-				let v = result.mean / 1e6;
-				// +/- 1.96 standard deviations = 95% CI
-				let ci = 1.96 * result.stdev / 1e6 / (result.count as f64).sqrt();
-				let s = format!("{:.5} ± {:.5} ({:.0}%)", v, ci, ci / v * 100.0);
-				row.push(Cell::new(&s));
+				row.push(Cell::new(&format!("{}", result.as_ref().unwrap())));
 			}
 		}
 		table.add_row(Row::new(row));
