@@ -7,6 +7,6 @@ repository = "https://github.com/jeremy-rifkin/Sorting-Benchmarks"
 publish = false
 
 [dependencies]
+prettytable-rs = "0.8.0"
 rand = {version = "0.8.0", features = ["small_rng"]}
 regex = "0.2"
-prettytable-rs = "0.8.0"

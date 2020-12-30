@@ -83,6 +83,7 @@ pub fn tukey(item: u64, q: &QuartileDescriptor, threshold: f64) -> bool {
 	!(item > q.q3 + threshold * q.iqr || item < q.q1 - threshold * q.iqr)
 }
 
+// everything below is for implementing welch's t-test
 // gamma function implementation from the statrs crate
 // https://docs.rs/statrs/0.7.0/src/statrs/function/gamma.rs.html#54-72
 // https://github.com/boxtown/statrs/blob/8518fe7fc3e3de64ecbd45e3ad05ae98d68b945b/src/consts.rs
@@ -94,45 +95,143 @@ const TWO_SQRT_E_OVER_PI: f64 = 1.8603827342052657173362492472666631120594218414
 const GAMMA_R: f64 = 10.900511;
 /// Polynomial coefficients for approximating the `gamma_ln` function
 const GAMMA_DK: &'static [f64] = &[2.48574089138753565546e-5,
-                                   1.05142378581721974210,
-                                   -3.45687097222016235469,
-                                   4.51227709466894823700,
-                                   -2.98285225323576655721,
-                                   1.05639711577126713077,
-                                   -1.95428773191645869583e-1,
-                                   1.70970543404441224307e-2,
-                                   -5.71926117404305781283e-4,
-                                   4.63399473359905636708e-6,
+								   1.05142378581721974210,
+								   -3.45687097222016235469,
+								   4.51227709466894823700,
+								   -2.98285225323576655721,
+								   1.05639711577126713077,
+								   -1.95428773191645869583e-1,
+								   1.70970543404441224307e-2,
+								   -5.71926117404305781283e-4,
+								   4.63399473359905636708e-6,
 								   -2.71994908488607703910e-9];
 /// Computes the gamma function with an accuracy
 /// of 16 floating point digits. The implementation
 /// is derived from "An Analysis of the Lanczos Gamma Approximation",
 /// Glendon Ralph Pugh, 2004 p. 116
 pub fn gamma(x: f64) -> f64 {
-    if x < 0.5 {
-        let s = GAMMA_DK.iter()
-            .enumerate()
-            .skip(1)
-            .fold(GAMMA_DK[0], |s, t| s + t.1 / (t.0 as f64 - x));
+	if x < 0.5 {
+		let s = GAMMA_DK.iter()
+			.enumerate()
+			.skip(1)
+			.fold(GAMMA_DK[0], |s, t| s + t.1 / (t.0 as f64 - x));
 
-        f64::consts::PI /
-        ((f64::consts::PI * x).sin() * s * TWO_SQRT_E_OVER_PI *
-         ((0.5 - x + GAMMA_R) / f64::consts::E).powf(0.5 - x))
-    } else {
-        let s = GAMMA_DK.iter()
-            .enumerate()
-            .skip(1)
-            .fold(GAMMA_DK[0], |s, t| s + t.1 / (x + t.0 as f64 - 1.0));
+		f64::consts::PI /
+		((f64::consts::PI * x).sin() * s * TWO_SQRT_E_OVER_PI *
+		 ((0.5 - x + GAMMA_R) / f64::consts::E).powf(0.5 - x))
+	} else {
+		let s = GAMMA_DK.iter()
+			.enumerate()
+			.skip(1)
+			.fold(GAMMA_DK[0], |s, t| s + t.1 / (x + t.0 as f64 - 1.0));
 
-        s * TWO_SQRT_E_OVER_PI * ((x - 0.5 + GAMMA_R) / f64::consts::E).powf(x - 0.5)
-    }
+		s * TWO_SQRT_E_OVER_PI * ((x - 0.5 + GAMMA_R) / f64::consts::E).powf(x - 0.5)
+	}
+}
+
+// beta functions implemented based off of mpmath
+// https://github.com/fredrik-johansson/mpmath/blob/77c4c5e0ce37a2acca27bbf059e508bcb9579005/mpmath/functions/factorials.py#L5-L59
+// BSD license
+fn isnpint(x: f64) -> bool {
+	return x <= 0.0 && x.round() == x;
+}
+//const EPS: f64 = 2.2204460492503131e-16;
+pub fn gammaprod(a: &[f64], b: &[f64]) -> f64 {
+	let mut poles_num = vec![];
+	let mut poles_den = vec![];
+	let mut regular_num = vec![];
+	let mut regular_den = vec![];
+	for x in a {
+		if isnpint(*x) {
+			poles_num.push(*x);
+		} else {
+			regular_num.push(*x);
+		}
+	}
+	for x in b {
+		if isnpint(*x) {
+			poles_den.push(*x);
+		} else {
+			regular_den.push(*x);
+		}
+	}
+	if poles_num.len() < poles_den.len() {
+		return 0.0;
+	}
+	if poles_num.len() > poles_den.len() {
+		return f64::INFINITY;
+	}
+	let mut p = 1.0;
+	while poles_num.len() > 0 {
+		let i = poles_num.pop().unwrap();
+		let j = poles_den.pop().unwrap();
+		p *= (-1.0f64).powf(i + j) * gamma(1.0 - j) / gamma(1.0 - i);
+	}
+	for x in regular_num {
+		p *= gamma(x);
+	}
+	for x in regular_den {
+		p /= gamma(x);
+	}
+	p
+}
+pub fn beta(x: f64, y: f64) -> f64 {
+	gammaprod(&[x, y], &[x + y])
+}
+//fn nint_distance(n: f64) -> (f64, f64) {
+//	let a = n.floor();
+//	let b = n.ceil();
+//	if (a - n).abs() < (b - n).abs() {
+//		(a, (a - n).abs().log2())
+//	} else {
+//		(b, (b - n).abs().log2())
+//	}
+//}
+// a and b are the parameters of the beta function
+// x1 is the lower bound of the integral, x2 is the upper bound
+// we're looking for x1 = 0, x2 = x
+pub fn betainc(a: f64, b: f64, x1: f64, x2: f64/*, regularized: bool*/) -> f64 {
+	let /*mut*/ a = a;
+	let /*mut*/ v;
+	if x1 == x2 {
+		v = 0.0;
+	} else if x1 == 0.0 {
+		if x1 == 0.0 && x2 == 1.0 {
+			v = beta(a, b);
+		} else {
+			v = x2.powf(a) * hypergeometric2F1(a, 1.0 - b, a + 1.0, x2) / a
+		}
+	} else {
+		//let (m, d) = nint_distance(a);
+		//let mut prec = 10.0; // TODO
+		//if m <= 0.0 {
+		//	if d < -prec {
+		//		let h = EPS;
+		//		prec *= 2.0;
+		//		a += h;
+		//	} else if d < -4.0 {
+		//		prec -= d;
+		//	}
+		//}
+		let s1 = x2.powf(a) * hypergeometric2F1(a, 1.0 - b, a + 1.0, x2);
+		let s2 = x1.powf(a) * hypergeometric2F1(a, 1.0 - b, a + 1.0, x1);
+		v = (s1 - s2) / a;
+	}
+	/*if regularized {
+		v /= beta(a, b);
+	}*/
+	return v;
+}
+
+pub fn betainc_regularized(a: f64, b: f64, x: f64) -> f64 {
+	betainc(a, b, 0.0, x) / beta(a, b)
 }
 
 // computes part of the hypergeometric function while avoiding overflow from the rising factorials
 // and factorials on both the top and bottom
-//   (a)_n (b)_n    1
+//   (a)_n (b)_n	1
 //   ----------- * ---
-//      (c)_n       n!
+//	  (c)_n	   n!
 fn pochhammer_factorial(a: f64, b: f64, c: f64, n: i32) -> f64 {
 	let a_gen = |i: i32| a + i as f64;
 	let b_gen = |i: i32| b + i as f64;
@@ -148,7 +247,6 @@ fn pochhammer_factorial(a: f64, b: f64, c: f64, n: i32) -> f64 {
 #[allow(non_snake_case)]
 fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 	assert!(c >= 0.0);
-	assert!(z.abs() < 1.0);
 	let mut sum = 0.0;
 	let mut n = 0;
 	loop {
@@ -167,15 +265,34 @@ fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 }
 
 pub fn t_cdf(x: f64, v: f64) -> f64 {
-	0.5 + x * gamma((v + 1.0) / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x*x/v) / ((v * f64::consts::PI).sqrt() * gamma(v / 2.0))
+	/*if x.powi(2) < v {
+		println!("--a");
+		0.5 + x * gamma((v + 1.0) / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x*x/v) / ((v * f64::consts::PI).sqrt() * gamma(v / 2.0))
+	} else {
+		println!("--b {} {}", x, v);
+		0.0
+		//1.0 - 0.5 * function::beta::beta_reg(v / 2.0, 0.5, x)
+	}*/
+	//assert_eq!(
+	//	0.5 + x * gamma((v + 1.0) / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x*x/v) / ((v * f64::consts::PI).sqrt() * gamma(v / 2.0)),
+	//	1.0 - 0.5 * betainc_regularized(v / 2.0, 0.5, v / (x.powi(2) + v))
+	//);
+	if x.powi(2) < v {
+		//println!("---- a");
+		0.5 + x * gamma((v + 1.0) / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x*x/v) / ((v * f64::consts::PI).sqrt() * gamma(v / 2.0))
+	} else {
+		//println!("---- b");
+		1.0 - 0.5 * betainc_regularized(v / 2.0, 0.5, v / (x.powi(2) + v))
+	}
 }
 
 // Welch's t-test
 pub fn two_sample_t_test(mean1: f64, mean2: f64, s1: f64, s2: f64, n1: i32, n2: i32, two_tailed: bool) -> f64 {
 	let (v1, v2) = ((n1 - 1) as f64, (n2 - 1) as f64);
 	let (n1, n2) = (n1 as f64, n2 as f64);
-	let t = (mean1 - mean2) / (s1.powi(2)/n1 + s2.powi(2)/n2).sqrt();
+	let t = (mean1 - mean2).abs() / (s1.powi(2)/n1 + s2.powi(2)/n2).sqrt();
 	let v = (s1.powi(2)/n1 + s2.powi(2)/n2).powi(2) / (s1.powi(4) / (n1.powi(2) * v1) + s2.powi(4) / (n2.powi(2) * v2));
-	assert!(t.abs().powi(2) < v);
-	t_cdf(t, v) * if two_tailed { 2.0 } else { 1.0 }
+	(1.0 - t_cdf(t, v)) * if two_tailed { 2.0 } else { 1.0 }
 }
+
+
