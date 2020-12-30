@@ -54,6 +54,11 @@ fn test_bubblesort() {
 }
 
 #[test]
+fn test_bubblesort_unsafe() {
+	test_sorting_algorithm(algos::bubblesort::bubblesort_unsafe);
+}
+
+#[test]
 fn test_cocktail_shaker() {
 	test_sorting_algorithm(algos::cocktail_shaker::cocktail_shaker);
 }
@@ -66,6 +71,11 @@ fn test_selectionsort() {
 #[test]
 fn test_insertionsort() {
 	test_sorting_algorithm(algos::insertionsort::insertionsort);
+}
+
+#[test]
+fn test_insertionsort_unsafe() {
+	test_sorting_algorithm(algos::insertionsort::insertionsort_unsafe);
 }
 
 #[test]
@@ -111,6 +121,11 @@ fn test_mergesort_in_place() {
 #[test]
 fn test_quicksort_end() {
 	test_sorting_algorithm(algos::quicksort_end);
+}
+
+#[test]
+fn test_quicksort_end_unsafe() {
+	test_sorting_algorithm(algos::quicksort_end_unsafe);
 }
 
 #[test]

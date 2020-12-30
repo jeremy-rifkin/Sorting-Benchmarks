@@ -6,3 +6,17 @@ pub fn insertionsort<T: Ord>(array: &mut [T]) {
 		}
 	}
 }
+
+pub fn insertionsort_unsafe<T: Ord + Copy>(array: &mut [T]) {
+	unsafe {
+		let ptr = array.as_mut_ptr();
+		for mut i in 1..array.len() {
+			while i > 0 && *ptr.add(i - 1) > *ptr.add(i) {
+				let tmp = *ptr.add(i - 1);
+				*ptr.add(i - 1) = *ptr.add(i);
+				*ptr.add(i) = tmp;
+				i -= 1;
+			}
+		}
+	}
+}

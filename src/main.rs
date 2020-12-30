@@ -112,9 +112,11 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 fn main() {
 	let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
 		sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
+		sfn!(algos::bubblesort_unsafe::<i32>,        "O(n^2)"),
 		sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
 		sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
 		sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
+		sfn!(algos::insertionsort_unsafe::<i32>,     "O(n^2)"),
 		sfn!(algos::shell::<i32>,                    "O(n^(4/3))"),
 		sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 		sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
@@ -124,6 +126,8 @@ fn main() {
 		sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
 		sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
 		sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
+		sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
+		sfn!(algos::quicksort_end_unsafe::<i32>,     "O(n log n)"),
 		sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 		sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
 		sfn!(sort::weird::<i32>,                     "O(n^(3/2))"),

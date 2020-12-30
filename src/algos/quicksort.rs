@@ -58,3 +58,35 @@ fn quicksort_hybrid_step<T: Ord + Copy>(array: &mut [T], rng: &mut SmallRng) {
 	quicksort_hybrid_step(&mut array[(pivot + 1)..], rng);
 }
 
+fn partition_end_unsafe<T: Ord + Copy>(slice: &mut [T]) -> usize {
+	unsafe {
+		let ptr = slice.as_mut_ptr();
+		let pivot = *ptr.add(slice.len() - 1);
+		let mut i = 0;
+		for j in 0..(slice.len() - 1) {
+			if *ptr.add(j) < pivot {
+				let tmp = *ptr.add(i);
+				*ptr.add(i) = *ptr.add(j);
+				*ptr.add(j) = tmp;
+				i += 1;
+			}
+		}
+		let tmp = *ptr.add(i);
+		*ptr.add(i) = *ptr.add(slice.len() - 1);
+		*ptr.add(slice.len() - 1) = tmp;
+		return i;
+	}
+}
+
+pub fn quicksort_end_unsafe<T: Ord + Copy>(array: &mut [T]) {
+	/*if array.len() <= 32 {
+		algos::insertionsort_unsafe(array);
+		return;
+	}*/
+	if array.len() <= 1 {
+		return;
+	}
+	let pivot = partition_end_unsafe(array);
+	quicksort_end_unsafe(&mut array[..pivot]);
+	quicksort_end_unsafe(&mut array[(pivot + 1)..]);
+}
