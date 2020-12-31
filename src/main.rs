@@ -30,7 +30,20 @@ impl std::fmt::Display for BenchmarkResult {
 		let v = self.mean / 1e6;
 		// +/- 1.96 standard deviations = 95% CI
 		let ci = 1.96 * self.stdev / 1e6 / (self.count as f64).sqrt();
-		write!(f, "{:.5} ± {:.5} ({:.0}%)", v, ci, ci / v * 100.0)
+		write!(f, "{:.5} ± {:.5} ({:.0}%){}", v, ci, ci / v * 100.0, if self.is_fastest {" *"} else {""})
+	}
+}
+
+impl BenchmarkResult {
+	// returns a p-value
+	fn compare(&self, other: &BenchmarkResult) -> f64 {
+		let p = utils::two_sample_t_test(self.mean, other.mean, self.stdev, other.stdev, self.count, other.count, true);
+		//println!("{}", p);
+		assert!(!p.is_nan());
+		assert!(!p.is_infinite());
+		assert!(!p.is_sign_negative());
+		assert!(p <= 1.0);
+		p
 	}
 }
 
@@ -174,6 +187,34 @@ fn main() {
 			}
 		}
 		test_size *= 10;
+	}
+	// mins
+	for i in 0..results[0].len() {
+		let mut min_mean = Option::<f64>::None;
+		let mut min_result = Option::<usize>::None;
+		for j in 0..algorithms.len() {
+			let ar = &results[j][i];
+			if ar.is_some() {
+				let ar = ar.as_ref().unwrap();
+				if min_mean.is_none() || ar.mean < min_mean.unwrap() {
+					min_mean = Option::Some(ar.mean);
+					min_result = Option::Some(j);
+				}
+			}
+		}
+		if min_result.is_some() {
+			let min_j = min_result.unwrap();
+			results[min_j][i].as_mut().unwrap().is_fastest = true;
+			let min = results[min_j][i].clone().unwrap();
+			for j in 0..algorithms.len() {
+				if results[j][i].is_some() {
+					let ar = results[j][i].as_mut().unwrap();
+					if min.compare(ar) >= 0.01 {
+						ar.is_fastest = true;
+					}
+				}
+			}
+		}
 	}
 	// print a delimited table (helpful for pasting into excel)
 	for cell in header.iter() {
