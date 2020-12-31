@@ -126,6 +126,45 @@ fn gamma(x: f64) -> f64 {
 		s * TWO_SQRT_E_OVER_PI * ((x - 0.5 + GAMMA_R) / f64::consts::E).powf(x - 0.5)
 	}
 }
+/// Constant value for `ln(pi)`
+pub const LN_PI: f64 = 1.1447298858494001741434273513530587116472948129153;
+/// Constant value for `ln(2 * sqrt(e / pi))`
+pub const LN_2_SQRT_E_OVER_PI: f64 = 0.6207822376352452223455184457816472122518527279025978;
+// https://docs.rs/statrs/0.13.0/src/statrs/function/gamma.rs.html#33-57
+/// Computes the logarithm of the gamma function
+/// with an accuracy of 16 floating point digits.
+/// The implementation is derived from
+/// "An Analysis of the Lanczos Gamma Approximation",
+/// Glendon Ralph Pugh, 2004 p. 116
+pub fn ln_gamma(x: f64) -> f64 {
+	if x < 0.5 {
+		let s = GAMMA_DK
+			.iter()
+			.enumerate()
+			.skip(1)
+			.fold(GAMMA_DK[0], |s, t| s + t.1 / (t.0 as f64 - x));
+		LN_PI
+			- (f64::consts::PI * x).sin().ln()
+			- s.ln()
+			- LN_2_SQRT_E_OVER_PI
+			- (0.5 - x) * ((0.5 - x + GAMMA_R) / f64::consts::E).ln()
+	} else {
+		let s = GAMMA_DK
+			.iter()
+			.enumerate()
+			.skip(1)
+			.fold(GAMMA_DK[0], |s, t| s + t.1 / (x + t.0 as f64 - 1.0));
+		s.ln()
+			+ LN_2_SQRT_E_OVER_PI
+			+ (x - 0.5) * ((x - 0.5 + GAMMA_R) / f64::consts::E).ln()
+	}
+}
+
+// helper for large values of n
+// computes gamma(a) / gamma(b) with e^(lngamma(a) - lngamma(b))
+fn large_gamma(a: f64, b: f64) -> f64 {
+	f64::consts::E.powf(ln_gamma(a) - ln_gamma(b))
+}
 
 // beta functions implemented based off of mpmath
 // https://github.com/fredrik-johansson/mpmath/blob/77c4c5e0ce37a2acca27bbf059e508bcb9579005/mpmath/functions/factorials.py#L5-L59
@@ -165,11 +204,16 @@ fn gammaprod(a: &[f64], b: &[f64]) -> f64 {
 		let j = poles_den.pop().unwrap();
 		p *= (-1.0f64).powf(i + j) * gamma(1.0 - j) / gamma(1.0 - i);
 	}
-	for x in regular_num {
-		p *= gamma(x);
-	}
-	for x in regular_den {
-		p /= gamma(x);
+	regular_num.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
+	regular_den.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
+	for i in 0..std::cmp::max(regular_den.len(), regular_num.len()) {
+		if i < regular_num.len() && i < regular_den.len() {
+			p *= large_gamma(regular_num[i], regular_den[i]);
+		} else if i < regular_num.len() {
+			p *= gamma(regular_num[i]);
+		} else { // i < regular_den.len()
+			p /= gamma(regular_den[i]);
+		}
 	}
 	p
 }
@@ -186,6 +230,7 @@ fn betainc(a: f64, b: f64, x1: f64, x2: f64) -> f64 {
 	if x1 == x2 {
 		0.0
 	} else if x1 == 0.0 {
+		// this is the only branch currently taken by the program
 		if x1 == 0.0 && x2 == 1.0 {
 			beta(a, b)
 		} else {
@@ -227,8 +272,11 @@ fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 	loop {
 		let v = pochhammer_factorial(a, b, c, n) * z.powi(n);
 		sum += v;
-		if v.abs() < 0.0001 {
+		if v.abs() < 0.00001 {
 			break;
+		}
+		if v >= 1e13 { // substantial loss of precision
+			return f64::NAN;
 		}
 		if n >= 10_000 || v.is_infinite() || v.is_nan() {
 			println!("{} {}", v, n);
@@ -240,20 +288,32 @@ fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 }
 
 fn t_cdf(x: f64, v: f64) -> f64 {
-	// May as well use this alternative formula when possible?
+	// Attempt to use the simple formula when x^2 < v
 	if x.powi(2) < v {
-		0.5 + x * gamma((v + 1.0) / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x * x / v)
-		/ ((v * f64::consts::PI).sqrt() * gamma(v / 2.0))
-	} else {
-		1.0 - 0.5 * betainc_regularized(v / 2.0, 0.5, v / (x.powi(2) + v))
+		let res = 0.5 + x * large_gamma((v + 1.0) / 2.0, v / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x * x / v)
+		/ (v * f64::consts::PI).sqrt();
+		// round to 5 decimal places to deal with precision limits
+		let res = (res * 100000.0).round() / 100000.0;
+		// res returns NaN if there's an issue with 2F1 (i.e. precision overflow)
+		// TODO: more sanity checks on the result?
+		if !res.is_nan() {
+			return res;
+		}
 	}
+	// else: x^2 >= v or 2F1 in the simple formula wasn't successful
+	let res = 1.0 - 0.5 * betainc_regularized(v / 2.0, 0.5, v / (x.powi(2) + v));
+	let res = (res * 100000.0).round() / 100000.0;
+	res
 }
 
 // Welch's t-test
-pub fn two_sample_t_test(mean1: f64, mean2: f64, s1: f64, s2: f64, n1: i32, n2: i32, two_tailed: bool) -> f64 {
+pub fn two_sample_t_test(mean1: f64, mean2: f64, s1: f64, s2: f64, n1: usize, n2: usize, two_tailed: bool) -> f64 {
 	let (v1, v2) = ((n1 - 1) as f64, (n2 - 1) as f64);
 	let (n1, n2) = (n1 as f64, n2 as f64);
 	let t = (mean1 - mean2).abs() / (s1.powi(2) / n1 + s2.powi(2) / n2).sqrt();
+	if t == 0.0 {
+		return 0.5 * if two_tailed { 2.0 } else { 1.0 }; // ?
+	}
 	let v = (s1.powi(2) / n1 + s2.powi(2) / n2).powi(2) / (s1.powi(4) / (n1.powi(2) * v1) + s2.powi(4) / (n2.powi(2) * v2));
 	(1.0 - t_cdf(t, v)) * if two_tailed { 2.0 } else { 1.0 }
 }
