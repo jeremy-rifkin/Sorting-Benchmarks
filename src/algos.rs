@@ -11,9 +11,6 @@ pub use heapsort::*;
 pub mod insertionsort;
 pub use insertionsort::*;
 
-pub mod llrbtsort;
-pub use llrbtsort::*;
-
 pub mod mergesort;
 pub use mergesort::*;
 
