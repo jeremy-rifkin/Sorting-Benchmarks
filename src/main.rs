@@ -138,6 +138,51 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	})
 }
 
+fn find_limits(algorithms: &Vec<(fn(&mut [i32]), String, &str)>) -> Vec<usize> {
+	let mut rng = SmallRng::seed_from_u64(RNG_SEED ^ 0xF00D);
+	let mut test_size = MIN_TEST_SIZE;
+	let n_tests = 4; // we'll take the best of 4
+	let mut test_vectors: Vec<Vec<i32>> = vec![Vec::new(); n_tests];
+	let mut limits = vec![0; algorithms.len()];
+	// This flag array is to prevent algorithms from being benchmarked after a certain point - don't
+	// want to run bubblesort on a million items.
+	let mut algorithm_enable_flags = vec![true; algorithms.len()];
+	while test_size <= MAX_TEST_SIZE {
+		// update test vectors
+		for i in 0..n_tests {
+			while test_vectors[i].len() < test_size {
+				test_vectors[i].push(rng.next_u32() as i32);
+			}
+		}
+		for (i, item) in algorithms.iter().enumerate() {
+			if algorithm_enable_flags[i] {
+				println!("{} {}", item.1, utils::commafy(test_size));
+				// run 4 tests
+				let mut min = u64::MAX;
+				for j in 0..n_tests {
+					print!(".");
+					thread::sleep(Duration::from_millis(10)); // TODO
+					let start = Instant::now();
+					item.0(&mut test_vectors[j].clone());
+					min = std::cmp::min(min, start.elapsed().as_nanos() as u64);
+					if min > RUNTIME_LIMIT / MIN_ACCEPTABLE_TESTS as u64 {
+						break;
+					}
+				}
+				print!("\n");
+				if min <= RUNTIME_LIMIT / MIN_ACCEPTABLE_TESTS as u64 {
+					limits[i] = test_size;
+				} else {
+					// don't test any further
+					algorithm_enable_flags[i] = false;
+				}
+			}
+		}
+		test_size *= 10;
+	}
+	limits
+}
+
 fn main() {
 	utils::set_priority();
 	let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
@@ -159,9 +204,15 @@ fn main() {
 		sfn!(algos::quicksort_end_unsafe::<i32>,     "O(n log n)"),
 		sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 		sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
-		sfn!(algos::weird::<i32>,                     "O(n^(3/2))"),
-		sfn!(algos::rustsort::<i32>,                  "O(n log n)")
+		sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
+		sfn!(algos::rustsort::<i32>,                 "O(n log n)")
 	];
+
+	let limits = find_limits(&algorithms);
+	for (i, entry) in algorithms.iter().enumerate() {
+		println!("{} {}", entry.1, utils::commafy(limits[i]));
+	}
+
 	// run tests
 	let mut results = vec![Vec::new(); algorithms.len()]; // 2d matrix of results
 	let mut header = vec![String::from("")]; // start building the header now
