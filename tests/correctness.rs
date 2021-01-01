@@ -140,5 +140,5 @@ fn test_quicksort_hybrid() {
 
 #[test]
 fn test_weird() {
-	test_sorting_algorithm(sort::weird);
+	test_sorting_algorithm(algos::weird);
 }

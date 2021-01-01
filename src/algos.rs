@@ -17,6 +17,9 @@ pub use llrbtsort::*;
 pub mod mergesort;
 pub use mergesort::*;
 
+pub mod misc;
+pub use misc::*;
+
 pub mod quicksort;
 pub use quicksort::*;
 

@@ -7,7 +7,6 @@ use rand::{RngCore, SeedableRng};
 use regex::Regex;
 
 mod algos;
-mod sort;
 mod utils;
 
 const MIN_TEST_SIZE: usize = 10;
@@ -159,8 +158,8 @@ fn main() {
 		sfn!(algos::quicksort_end_unsafe::<i32>,     "O(n log n)"),
 		sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 		sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
-		sfn!(sort::weird::<i32>,                     "O(n^(3/2))"),
-		sfn!(sort::rustsort::<i32>,                  "O(n log n)")
+		sfn!(algos::weird::<i32>,                     "O(n^(3/2))"),
+		sfn!(algos::rustsort::<i32>,                  "O(n log n)")
 	];
 	// run tests
 	let mut results = vec![Vec::new(); algorithms.len()]; // 2d matrix of results
