@@ -7,6 +7,7 @@ use rand::{RngCore, SeedableRng};
 use regex::Regex;
 
 mod algos;
+mod statistics;
 mod utils;
 
 const MIN_TEST_SIZE: usize = 10;
@@ -38,7 +39,7 @@ impl std::fmt::Display for BenchmarkResult {
 impl BenchmarkResult {
 	// returns a p-value
 	fn compare(&self, other: &BenchmarkResult) -> f64 {
-		let p = utils::two_sample_t_test(self.mean, other.mean, self.stdev, other.stdev, self.count, other.count, true);
+		let p = statistics::two_sample_t_test(self.mean, other.mean, self.stdev, other.stdev, self.count, other.count, true);
 		//println!("{}", p);
 		assert!(!p.is_nan(), "problematic value: {}", p);
 		assert!(!p.is_infinite(), "problematic value: {}", p);
@@ -53,7 +54,7 @@ impl BenchmarkResult {
 	}
 	fn t_ci(&self) -> f64 {
 		// returns 98% confidence interval
-		utils::t_lookup(self.count as i32 - 1) * self.stdev / 1e6 / (self.count as f64).sqrt()
+		statistics::t_lookup(self.count as i32 - 1) * self.stdev / 1e6 / (self.count as f64).sqrt()
 	}
 }
 
@@ -123,12 +124,12 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	// extraneous results in the results vector (e.g. in a benchmark whose result's mean was
 	//  ~2,200ns, there was an outlier of 112,600ns blowing up the standard deviation calculation).
 	// This filter here uses Tukey's method to filter out outliers.
-	let q = utils::quartiles(&results);
+	let q = statistics::quartiles(&results);
 	let results: Vec<u64> = results.into_iter()
-							.filter(|item| utils::tukey(*item, &q, OUTLIER_COEFFICIENT))
+							.filter(|item| statistics::tukey(*item, &q, OUTLIER_COEFFICIENT))
 							.collect();
 	let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
-	let stdev = utils::stdev(&results, mean);
+	let stdev = statistics::stdev(&results, mean);
 	Option::Some(BenchmarkResult {
 		mean,
 		stdev,
