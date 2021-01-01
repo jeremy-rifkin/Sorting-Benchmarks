@@ -7,6 +7,19 @@
 	};
 }
 
+#[cfg(target_family = "unix")]
+pub fn set_priority() {
+	let thread = thread_priority::Thread::current().unwrap();
+	thread_priority::unix::set_thread_priority_and_policy(thread.id, thread_priority::ThreadPriority::Max, thread_priority::unix::ThreadSchedulePolicy::Realtime).unwrap();
+	//thread_priority::unix::set_current_thread_priority(thread_priority::ThreadPriority::Max).unwrap();
+}
+
+#[cfg(target_family = "windows")]
+pub fn set_priority() {
+	winproc::Process::current().set_priority(winproc::PriorityClass::Realtime).unwrap();
+	//winproc::Thread::current().set_priority(winproc::PriorityLevel::TimeCritical).unwrap();
+}
+
 // returns number with comma separators (i.e. 1000000 -> "1,000,000")
 pub fn commafy(mut num: usize) -> String {
 	let log = (num as f64).log10() as usize;
@@ -316,4 +329,75 @@ pub fn two_sample_t_test(mean1: f64, mean2: f64, s1: f64, s2: f64, n1: usize, n2
 	}
 	let v = (s1.powi(2) / n1 + s2.powi(2) / n2).powi(2) / (s1.powi(4) / (n1.powi(2) * v1) + s2.powi(4) / (n2.powi(2) * v2));
 	(1.0 - t_cdf(t, v)) * if two_tailed { 2.0 } else { 1.0 }
+}
+
+use lazy_static::lazy_static;
+use std::collections::HashMap;
+
+lazy_static! {
+	static ref T_TABLE: HashMap<i32, (f64, f64, f64, f64, f64, f64)> = {
+		let entries = [
+			//   0      1      2      3       4       5
+			//   50%    80%    90%    95%     98%     99%
+			(1, (1.000, 3.078, 6.314, 12.706, 31.821, 63.657)),
+			(2, (0.816, 1.886, 2.920, 4.303, 6.965, 9.925)),
+			(3, (0.765, 1.638, 2.353, 3.182, 4.541, 5.841)),
+			(4, (0.741, 1.533, 2.132, 2.776, 3.747, 4.604)),
+			(5, (0.727, 1.476, 2.015, 2.571, 3.365, 4.032)),
+			(6, (0.718, 1.440, 1.943, 2.447, 3.143, 3.707)),
+			(7, (0.711, 1.415, 1.895, 2.365, 2.998, 3.499)),
+			(8, (0.706, 1.397, 1.860, 2.306, 2.896, 3.355)),
+			(9, (0.703, 1.383, 1.833, 2.262, 2.821, 3.250)),
+			(10, (0.700, 1.372, 1.812, 2.228, 2.764, 3.169)),
+			(11, (0.697, 1.363, 1.796, 2.201, 2.718, 3.106)),
+			(12, (0.695, 1.356, 1.782, 2.179, 2.681, 3.055)),
+			(13, (0.694, 1.350, 1.771, 2.160, 2.650, 3.012)),
+			(14, (0.692, 1.345, 1.761, 2.145, 2.624, 2.977)),
+			(15, (0.691, 1.341, 1.753, 2.131, 2.602, 2.947)),
+			(16, (0.690, 1.337, 1.746, 2.120, 2.583, 2.921)),
+			(17, (0.689, 1.333, 1.740, 2.110, 2.567, 2.898)),
+			(18, (0.688, 1.330, 1.734, 2.101, 2.552, 2.878)),
+			(19, (0.688, 1.328, 1.729, 2.093, 2.539, 2.861)),
+			(20, (0.687, 1.325, 1.725, 2.086, 2.528, 2.845)),
+			(21, (0.686, 1.323, 1.721, 2.080, 2.518, 2.831)),
+			(22, (0.686, 1.321, 1.717, 2.074, 2.508, 2.819)),
+			(23, (0.685, 1.319, 1.714, 2.069, 2.500, 2.807)),
+			(24, (0.685, 1.318, 1.711, 2.064, 2.492, 2.797)),
+			(25, (0.684, 1.316, 1.708, 2.060, 2.485, 2.787)),
+			(26, (0.684, 1.315, 1.706, 2.056, 2.479, 2.779)),
+			(27, (0.684, 1.314, 1.703, 2.052, 2.473, 2.771)),
+			(28, (0.683, 1.313, 1.701, 2.048, 2.467, 2.763)),
+			(29, (0.683, 1.311, 1.699, 2.045, 2.462, 2.756)),
+			(30, (0.683, 1.310, 1.697, 2.042, 2.457, 2.750)),
+			(40, (0.681, 1.303, 1.684, 2.021, 2.423, 2.704)),
+			(50, (0.679, 1.299, 1.676, 2.009, 2.403, 2.678)),
+			(60, (0.679, 1.296, 1.671, 2.000, 2.390, 2.660)),
+			(70, (0.678, 1.294, 1.667, 1.994, 2.381, 2.648)),
+			(80, (0.678, 1.292, 1.664, 1.990, 2.374, 2.639)),
+			(90, (0.677, 1.291, 1.662, 1.987, 2.368, 2.632)),
+			(100, (0.677, 1.290, 1.660, 1.984, 2.364, 2.626)),
+			(0, (0.674, 1.282, 1.645, 1.960, 2.326, 2.576))
+		];
+		let mut table = HashMap::new();
+		for entry in entries.iter() {
+			table.insert(entry.0, entry.1);
+		}
+		table
+	};
+}
+
+// returns an estimate for a confidence interval critical t value
+// right it's hard-coded for a 98% confidence interval (because tuple)
+// estimation should be such that the returned value yields at least a 98% interval
+// TODO: use regression or method other than a lookup table?
+pub fn t_lookup(df: i32) -> f64 {
+	assert!(df >= 1);
+	if df <= 30 {
+		T_TABLE.get(&df).unwrap().5
+	} else if df <= 100 {
+		let df = (df + 9) / 10; // ceil division df / 10
+		T_TABLE.get(&df).unwrap().5
+	} else {
+		T_TABLE.get(&0).unwrap().5
+	}
 }

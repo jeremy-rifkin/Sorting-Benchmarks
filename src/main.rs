@@ -1,8 +1,10 @@
-use std::time::Instant;
+use std::thread;
+use std::time::{Duration, Instant};
+
+use prettytable::*;
 use rand::rngs::SmallRng;
 use rand::{RngCore, SeedableRng};
 use regex::Regex;
-use prettytable::*;
 
 mod algos;
 mod sort;
@@ -11,6 +13,7 @@ mod utils;
 const MIN_TEST_SIZE: usize = 10;
 const MAX_TEST_SIZE: usize = 1000; //1_000_000;
 const N_TESTS: usize = 200;
+const ALPHA: f64 = 0.001;
 
 const RNG_SEED: u64 = 2222;
 const RUNTIME_LIMIT: u64 = 10e9 as u64;
@@ -28,8 +31,7 @@ struct BenchmarkResult {
 impl std::fmt::Display for BenchmarkResult {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let v = self.mean / 1e6;
-		// +/- 1.96 standard deviations = 95% CI
-		let ci = 1.96 * self.stdev / 1e6 / (self.count as f64).sqrt();
+		let ci = self.t_ci();
 		write!(f, "{:.5} ± {:.5} ({:.0}%){}", v, ci, ci / v * 100.0, if self.is_fastest {" *"} else {""})
 	}
 }
@@ -39,11 +41,20 @@ impl BenchmarkResult {
 	fn compare(&self, other: &BenchmarkResult) -> f64 {
 		let p = utils::two_sample_t_test(self.mean, other.mean, self.stdev, other.stdev, self.count, other.count, true);
 		//println!("{}", p);
-		assert!(!p.is_nan());
-		assert!(!p.is_infinite());
-		assert!(!p.is_sign_negative());
-		assert!(p <= 1.0);
+		assert!(!p.is_nan(), "problematic value: {}", p);
+		assert!(!p.is_infinite(), "problematic value: {}", p);
+		assert!(!p.is_sign_negative(), "problematic value: {}", p);
+		assert!(p <= 1.0, "problematic value: {}", p);
 		p
+	}
+	#[allow(dead_code)]
+	fn z_ci(&self) -> f64 {
+		// +/- 1.96 standard deviations = 95% CI
+		1.96 * self.stdev / 1e6 / (self.count as f64).sqrt()
+	}
+	fn t_ci(&self) -> f64 {
+		// returns 98% confidence interval
+		utils::t_lookup(self.count as i32 - 1) * self.stdev / 1e6 / (self.count as f64).sqrt()
 	}
 }
 
@@ -82,8 +93,9 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	let mut running_sum = 0u64; // running sum of the results
 	let mut completed = 0; // tests completed counter
 	for i in 0..n_tests {
+		thread::sleep(Duration::from_millis(10));
 		// flush cpu cache
-		//destroy_cache();
+		destroy_cache();
 		// perform test
 		let start = Instant::now();
 		sort(&mut test_vectors[i]);
@@ -113,24 +125,11 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	//  ~2,200ns, there was an outlier of 112,600ns blowing up the standard deviation calculation).
 	// This filter here uses Tukey's method to filter out outliers.
 	let q = utils::quartiles(&results);
-	//let __results = results.clone(); // debug stuff
 	let results: Vec<u64> = results.into_iter()
 							.filter(|item| utils::tukey(*item, &q, OUTLIER_COEFFICIENT))
 							.collect();
 	let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
 	let stdev = utils::stdev(&results, mean);
-
-	// debug stuff
-	//let mean = running_sum as f64 / completed as f64;
-	//let v = mean / 1e6;
-	//// +/- 1.96 standard deviations = 95% CI
-	//let ci = 1.96 * utils::stdev(&__results[..completed], mean) / 1e6 / (completed as f64).sqrt();
-	//if ci / v * 100.0 >= 10.0 {
-	//	println!("{:.0}% {:?}", ci / v * 100.0, __results);
-	//	println!("{:?}", q);
-	//	println!("{} {} {:?}", mean, stdev, results);
-	//}
-
 	Option::Some(BenchmarkResult {
 		mean,
 		stdev,
@@ -140,6 +139,7 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 }
 
 fn main() {
+	utils::set_priority();
 	let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
 		sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
 		sfn!(algos::bubblesort_unsafe::<i32>,        "O(n^2)"),
@@ -155,7 +155,6 @@ fn main() {
 		sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
 		sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
 		sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
-		sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
 		sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
 		sfn!(algos::quicksort_end_unsafe::<i32>,     "O(n log n)"),
 		sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
@@ -209,7 +208,7 @@ fn main() {
 			for j in 0..algorithms.len() {
 				if results[j][i].is_some() {
 					let ar = results[j][i].as_mut().unwrap();
-					if min.compare(ar) >= 0.01 {
+					if min.compare(ar) >= ALPHA {
 						ar.is_fastest = true;
 					}
 				}
