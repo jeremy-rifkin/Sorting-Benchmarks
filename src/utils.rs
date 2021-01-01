@@ -293,7 +293,7 @@ fn t_cdf(x: f64, v: f64) -> f64 {
 		let res = 0.5 + x * large_gamma((v + 1.0) / 2.0, v / 2.0) * hypergeometric2F1(0.5, (v + 1.0) / 2.0, 1.5, -x * x / v)
 		/ (v * f64::consts::PI).sqrt();
 		// round to 5 decimal places to deal with precision limits
-		let res = (res * 100000.0).round() / 100000.0;
+		let res = (res * 1000.0).round() / 1000.0;
 		// res returns NaN if there's an issue with 2F1 (i.e. precision overflow)
 		// TODO: more sanity checks on the result?
 		if !res.is_nan() {
@@ -302,7 +302,7 @@ fn t_cdf(x: f64, v: f64) -> f64 {
 	}
 	// else: x^2 >= v or 2F1 in the simple formula wasn't successful
 	let res = 1.0 - 0.5 * betainc_regularized(v / 2.0, 0.5, v / (x.powi(2) + v));
-	let res = (res * 100000.0).round() / 100000.0;
+	let res = (res * 1000.0).round() / 1000.0;
 	res
 }
 
