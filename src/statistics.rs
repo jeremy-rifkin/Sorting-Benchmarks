@@ -347,11 +347,11 @@ lazy_static! {
 pub fn t_lookup(df: i32) -> f64 {
 	assert!(df >= 1);
 	if df <= 30 {
-		T_TABLE.get(&df).unwrap().5
+		T_TABLE.get(&df).unwrap().4
 	} else if df <= 100 {
 		let df = (df + 9) / 10; // ceil division df / 10
-		T_TABLE.get(&df).unwrap().5
+		T_TABLE.get(&df).unwrap().4
 	} else {
-		T_TABLE.get(&0).unwrap().5
+		T_TABLE.get(&0).unwrap().4
 	}
 }
