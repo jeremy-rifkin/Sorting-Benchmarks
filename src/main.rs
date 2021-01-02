@@ -176,6 +176,7 @@ fn main() {
 		sfn!(algos::quicksort_end_unsafe::<i32>,     "O(n log n)"),
 		sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 		sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
+		sfn!(algos::quicksort_hybrid_unsafe::<i32>,  "O(n log n)"),
 		sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
 		sfn!(algos::rustsort::<i32>,                 "O(n log n)")
 	];

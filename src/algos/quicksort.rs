@@ -79,14 +79,20 @@ fn partition_end_unsafe<T: Ord + Copy>(slice: &mut [T]) -> usize {
 }
 
 pub fn quicksort_end_unsafe<T: Ord + Copy>(array: &mut [T]) {
-	/*if array.len() <= 32 {
-		algos::insertionsort_unsafe(array);
-		return;
-	}*/
 	if array.len() <= 1 {
 		return;
 	}
 	let pivot = partition_end_unsafe(array);
 	quicksort_end_unsafe(&mut array[..pivot]);
 	quicksort_end_unsafe(&mut array[(pivot + 1)..]);
+}
+
+pub fn quicksort_hybrid_unsafe<T: Ord + Copy>(array: &mut [T]) {
+	if array.len() <= 32 {
+		algos::insertionsort_unsafe(array);
+		return;
+	}
+	let pivot = partition_end_unsafe(array);
+	quicksort_hybrid_unsafe(&mut array[..pivot]);
+	quicksort_hybrid_unsafe(&mut array[(pivot + 1)..]);
 }
