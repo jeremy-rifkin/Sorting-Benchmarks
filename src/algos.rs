@@ -11,11 +11,11 @@ pub use heapsort::*;
 pub mod insertionsort;
 pub use insertionsort::*;
 
-pub mod llrbtsort;
-pub use llrbtsort::*;
-
 pub mod mergesort;
 pub use mergesort::*;
+
+pub mod misc;
+pub use misc::*;
 
 pub mod quicksort;
 pub use quicksort::*;

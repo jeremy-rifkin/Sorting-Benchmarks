@@ -10,3 +10,6 @@ publish = false
 prettytable-rs = "0.8.0"
 rand = {version = "0.8.0", features = ["small_rng"]}
 regex = "0.2"
+winproc = "0.6.4"
+thread-priority = "0.2.1"
+lazy_static = "1.4.0"
