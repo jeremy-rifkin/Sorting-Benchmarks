@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use lazy_static::lazy_static;
 use prettytable::*;
 use rand::rngs::SmallRng;
 use rand::{RngCore, SeedableRng};
@@ -11,7 +13,7 @@ mod statistics;
 mod utils;
 
 const MIN_TEST_SIZE: usize = 10;
-const MAX_TEST_SIZE: usize = 1000; //1_000_000;
+const MAX_TEST_SIZE: usize = 1_000_000;
 const N_TESTS: usize = 200;
 const ALPHA: f64 = 0.001;
 
@@ -19,6 +21,18 @@ const RNG_SEED: u64 = 2222;
 const RUNTIME_LIMIT: u64 = 10e9 as u64;
 const MIN_ACCEPTABLE_TESTS: usize = 30;
 const OUTLIER_COEFFICIENT: f64 = 3.0;
+
+lazy_static! {
+	// don't want to run bubblesort on a million items (or 100,000 items for that matter)
+	static ref LIMIT_TABLE: HashMap<&'static str, usize> = {
+		let mut table = HashMap::new();
+		table.insert("O(n^2)", 10_000);
+		table.insert("O(n^(4/3))", usize::MAX);
+		table.insert("O(n^(3/2))", usize::MAX);
+		table.insert("O(n log n)", usize::MAX);
+		table
+	};
+}
 
 #[derive(Clone, Debug)]
 struct BenchmarkResult {
@@ -63,7 +77,7 @@ impl BenchmarkResult {
 
 // flush cpu cache between benchmarks
 // 20M / 4 bytes (i32)
-const DESTROYER_SIZE: usize = 20_000_000 / 4;
+const DESTROYER_SIZE: usize = 12_000_000 / 4;
 #[allow(dead_code)]
 fn destroy_cache() {
 	let mut a = vec![0; DESTROYER_SIZE];
@@ -141,51 +155,6 @@ fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkR
 	})
 }
 
-fn find_limits(algorithms: &Vec<(fn(&mut [i32]), String, &str)>) -> Vec<usize> {
-	let mut rng = SmallRng::seed_from_u64(RNG_SEED ^ 0xF00D);
-	let mut test_size = MIN_TEST_SIZE;
-	let n_tests = 4; // we'll take the best of 4
-	let mut test_vectors: Vec<Vec<i32>> = vec![Vec::new(); n_tests];
-	let mut limits = vec![0; algorithms.len()];
-	// This flag array is to prevent algorithms from being benchmarked after a certain point - don't
-	// want to run bubblesort on a million items.
-	let mut algorithm_enable_flags = vec![true; algorithms.len()];
-	while test_size <= MAX_TEST_SIZE {
-		// update test vectors
-		for i in 0..n_tests {
-			while test_vectors[i].len() < test_size {
-				test_vectors[i].push(rng.next_u32() as i32);
-			}
-		}
-		for (i, item) in algorithms.iter().enumerate() {
-			if algorithm_enable_flags[i] {
-				println!("{} {}", item.1, utils::commafy(test_size));
-				// run 4 tests
-				let mut min = u64::MAX;
-				for j in 0..n_tests {
-					print!(".");
-					thread::sleep(Duration::from_millis(10)); // TODO
-					let start = Instant::now();
-					item.0(&mut test_vectors[j].clone());
-					min = std::cmp::min(min, start.elapsed().as_nanos() as u64);
-					if min > RUNTIME_LIMIT / MIN_ACCEPTABLE_TESTS as u64 {
-						break;
-					}
-				}
-				print!("\n");
-				if min <= RUNTIME_LIMIT / MIN_ACCEPTABLE_TESTS as u64 {
-					limits[i] = test_size;
-				} else {
-					// don't test any further
-					algorithm_enable_flags[i] = false;
-				}
-			}
-		}
-		test_size *= 10;
-	}
-	limits
-}
-
 fn main() {
 	utils::set_priority();
 	let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
@@ -211,29 +180,18 @@ fn main() {
 		sfn!(algos::rustsort::<i32>,                 "O(n log n)")
 	];
 
-	let limits = find_limits(&algorithms);
-	for (i, entry) in algorithms.iter().enumerate() {
-		println!("{} {}", entry.1, utils::commafy(limits[i]));
-	}
-
 	// run tests
 	let mut results = vec![Vec::new(); algorithms.len()]; // 2d matrix of results
 	let mut header = vec![String::from("")]; // start building the header now
 	let mut test_size = MIN_TEST_SIZE;
 	let n_tests = N_TESTS;
-	// This flag array is to prevent algorithms from being benchmarked after a certain point - don't
-	// want to run bubblesort on a million items.
-	let mut algorithm_enable_flags = vec![true; algorithms.len()];
 	while test_size <= MAX_TEST_SIZE {
 		header.push(utils::commafy(test_size));
 		// test every algorithm for this test size
 		for (i, a) in algorithms.iter().enumerate() {
 			println!("{} {}", utils::commafy(test_size), a.1);
-			if algorithm_enable_flags[i] {
+			if test_size <= *LIMIT_TABLE.get(&a.2).unwrap() {
 				let b = bench(a.0, test_size, n_tests);
-				if b.is_none() {
-					algorithm_enable_flags[i] = false;
-				}
 				results[i].push(b);
 			} else {
 				results[i].push(Option::<BenchmarkResult>::None);
