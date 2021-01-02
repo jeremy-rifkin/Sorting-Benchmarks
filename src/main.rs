@@ -164,6 +164,7 @@ fn main() {
 		sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
 		sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
 		sfn!(algos::insertionsort_unsafe::<i32>,     "O(n^2)"),
+		sfn!(algos::insertionsort_c,                 "O(n^2)"),
 		sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
 		sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 		sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),

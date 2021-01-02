@@ -5,6 +5,7 @@ authors = ["Robochu <oleg.aprelikov@gmail.com>", "Jeremy Rifkin <rifkin@purdue.e
 edition = "2018"
 repository = "https://github.com/jeremy-rifkin/Sorting-Benchmarks"
 publish = false
+build = "src/build.rs"
 
 [dependencies]
 prettytable-rs = "0.8.0"
@@ -13,3 +14,4 @@ regex = "0.2"
 winproc = "0.6.4"
 thread-priority = "0.2.1"
 lazy_static = "1.4.0"
+libc = "0.2.81"
