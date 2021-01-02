@@ -39,6 +39,9 @@ impl std::fmt::Display for BenchmarkResult {
 impl BenchmarkResult {
 	// returns a p-value
 	fn compare(&self, other: &BenchmarkResult) -> f64 {
+		if self.stdev == 0.0 || other.stdev == 0.0 { // will cause problems / infinite / nan values
+			return 0.0; // I guess?
+		}
 		let p = statistics::two_sample_t_test(self.mean, other.mean, self.stdev, other.stdev, self.count, other.count, true);
 		//println!("{}", p);
 		assert!(!p.is_nan(), "problematic value: {}", p);
