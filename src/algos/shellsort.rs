@@ -15,7 +15,6 @@ pub fn shell_sequence<T: Ord>(slice: &mut [T], gap_sequence: &[usize]) {
 	}
 }
 
-#[allow(dead_code)]
 pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, max: usize) {
 	// shell functions are typically ""almost" geometric sequences" so this step should take
 	// logarithmic time and be fairly inconsequential
@@ -29,7 +28,6 @@ pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, m
 	}
 }
 
-#[allow(dead_code)]
 pub fn shell_function_known<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, k0: u32, kf: u32) {
 	for j in (kf..=k0).rev() {
 		println!("{}", gap_function(j));
@@ -37,7 +35,6 @@ pub fn shell_function_known<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> us
 	}
 }
 
-#[allow(dead_code)]
 pub fn shell_function_recursive<T: Ord>(slice: &mut [T], gap_function: fn(usize) -> usize, h0: usize, hmin: usize) {
 	let mut h = h0;
 	while h >= hmin {
@@ -51,6 +48,7 @@ pub fn shell_function_recursive<T: Ord>(slice: &mut [T], gap_function: fn(usize)
 	}
 }
 
+#[allow(dead_code)]
 pub fn shellsort_knuth<T: Ord>(slice: &mut [T]) {
 	// (3^k - 1) / 2 not exceeding ceil(n / 3)
 	shell_function_known(
@@ -61,6 +59,7 @@ pub fn shellsort_knuth<T: Ord>(slice: &mut [T]) {
 	);
 }
 
+#[allow(dead_code)]
 pub fn shellsort_sedgewick82<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
@@ -70,6 +69,7 @@ pub fn shellsort_sedgewick82<T: Ord>(slice: &mut [T]) {
 	);
 }
 
+#[allow(dead_code)]
 pub fn shellsort_sedgewick86<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
@@ -81,6 +81,7 @@ pub fn shellsort_sedgewick86<T: Ord>(slice: &mut [T]) {
 	);
 }
 
+#[allow(dead_code)]
 pub fn shellsort_gonnet_baeza<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function_recursive(
@@ -91,6 +92,7 @@ pub fn shellsort_gonnet_baeza<T: Ord>(slice: &mut [T]) {
 	);
 }
 
+#[allow(dead_code)]
 pub fn shellsort_tokuda<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
