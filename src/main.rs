@@ -302,5 +302,5 @@ fn main() {
 		table.add_row(Row::new(row));
 	}
 	table.printstd();
-	println!("└ Values in ms; 95% confidence interval displayed");
+	println!("└ Values in ms; 98% confidence interval displayed");
 }
