@@ -3,6 +3,7 @@
 .PHONY: is clean
 
 is:
+	mkdir -p object
 	gcc -c src/calgos/insertionsort.c -o object/insertionsort.o -m64 -Ofast -march=native -funroll-loops
 	ar rcs object/insertionsort.lib object/insertionsort.o
 	#gcc-ar rcs src/calgos/insertionsort.lib --plugin=$(gcc --print-file-name=liblto_plugin.dll.a) src/calgos/insertionsort.o
