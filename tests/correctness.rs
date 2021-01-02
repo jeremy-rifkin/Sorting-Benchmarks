@@ -142,3 +142,8 @@ fn test_quicksort_hybrid() {
 fn test_weird() {
 	test_sorting_algorithm(algos::weird);
 }
+
+#[test]
+fn test_radixsort() {
+	test_sorting_algorithm(algos::radixsort);
+}

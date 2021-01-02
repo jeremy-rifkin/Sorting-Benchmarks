@@ -41,5 +41,5 @@ pub fn commafy(mut num: usize) -> String {
 }
 
 pub fn verify_sorted(array: &[i32]) {
-	assert!(array.windows(2).all(|slice| slice[0] <= slice[1]));
+	assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
 }
