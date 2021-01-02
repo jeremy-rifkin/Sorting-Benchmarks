@@ -79,8 +79,28 @@ fn test_insertionsort_unsafe() {
 }
 
 #[test]
-fn test_shellsort() {
-	test_sorting_algorithm(algos::shellsort::shell);
+fn test_shellsort_knuth() {
+	test_sorting_algorithm(algos::shellsort::shellsort_knuth);
+}
+
+#[test]
+fn test_shellsort_sedgewick82() {
+	test_sorting_algorithm(algos::shellsort::shellsort_sedgewick82);
+}
+
+#[test]
+fn test_shellsort_sedgewick86() {
+	test_sorting_algorithm(algos::shellsort::shellsort_sedgewick86);
+}
+
+#[test]
+fn test_shellsort_gonnet_baeza() {
+	test_sorting_algorithm(algos::shellsort::shellsort_gonnet_baeza);
+}
+
+#[test]
+fn test_shellsort_tokuda() {
+	test_sorting_algorithm(algos::shellsort::shellsort_tokuda);
 }
 
 #[test]
