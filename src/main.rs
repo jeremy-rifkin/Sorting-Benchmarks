@@ -31,6 +31,7 @@ lazy_static! {
 		table.insert("O(n^(4/3))", usize::MAX);
 		table.insert("O(n^(3/2))", usize::MAX);
 		table.insert("O(n log n)", usize::MAX);
+		table.insert("O(n)", usize::MAX); // radixsort
 		table
 	};
 }
@@ -181,6 +182,7 @@ fn main() {
 		sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
 		sfn!(algos::quicksort_hybrid_unsafe::<i32>,  "O(n log n)"),
 		sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
+		sfn!(algos::radixsort,                       "O(n)"),
 		sfn!(algos::rustsort::<i32>,                 "O(n log n)")
 	];
 
