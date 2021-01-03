@@ -79,6 +79,16 @@ fn test_insertionsort_unsafe() {
 }
 
 #[test]
+fn test_insertionsort_unsafe_2() {
+	test_sorting_algorithm(algos::insertionsort::insertionsort_unsafe_2);
+}
+
+#[test]
+fn test_insertionsort_c() {
+	test_sorting_algorithm(algos::insertionsort_c);
+}
+
+#[test]
 fn test_shellsort_knuth() {
 	test_sorting_algorithm(algos::shellsort::shellsort_knuth);
 }
@@ -156,6 +166,11 @@ fn test_quicksort_random() {
 #[test]
 fn test_quicksort_hybrid() {
 	test_sorting_algorithm(algos::quicksort_hybrid);
+}
+
+#[test]
+fn test_quicksort_hybrid_unsafe() {
+	test_sorting_algorithm(algos::quicksort_hybrid_unsafe);
 }
 
 #[test]

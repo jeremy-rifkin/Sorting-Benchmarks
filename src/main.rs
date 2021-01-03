@@ -11,6 +11,7 @@ use regex::Regex;
 mod algos;
 mod statistics;
 mod utils;
+mod swap_unsafe;
 
 const MIN_TEST_SIZE: usize = 10;
 const MAX_TEST_SIZE: usize = 1_000_000;
@@ -164,6 +165,7 @@ fn main() {
 		sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
 		sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
 		sfn!(algos::insertionsort_unsafe::<i32>,     "O(n^2)"),
+		sfn!(algos::insertionsort_unsafe_2::<i32>,   "O(n^2)"),
 		sfn!(algos::insertionsort_c,                 "O(n^2)"),
 		sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
 		sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
