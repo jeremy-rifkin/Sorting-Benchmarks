@@ -22,24 +22,5 @@ pub fn radixsort(array: &mut [i32]) {
     bucketsort(array, |x| *x as u8);
     bucketsort(array, |x| (*x >> 8) as u8);
     bucketsort(array, |x| (*x >> 16) as u8);
-    bucketsort(array, |x| (*x >> 24) as u8);
-    let mut array_copy: Vec<i32> = vec![0; array.len()];
-    let mut first_negative: i64 = -1;
-    for i in 0..array.len() {
-        if array[i] < 0 {
-            first_negative = i as i64;
-            break;
-        }
-    }
-    if first_negative > 0 {
-        for i in (first_negative as usize)..array.len() {
-            array_copy[i - first_negative as usize] = array[i];
-        }
-        for i in 0..(first_negative as usize) {
-            array_copy[i + array.len() - first_negative as usize] = array[i];
-        }
-        for i in 0..array.len() {
-            array[i] = array_copy[i];
-        }
-    }
+    bucketsort(array, |x| ((*x >> 24) as u8) ^ 0x80);
 }
