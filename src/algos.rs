@@ -32,9 +32,11 @@ pub use shellsort::*;
 pub mod timsort;
 pub use timsort::*;
 
+#[allow(dead_code)]
 #[repr(C)] pub struct slice_t { pub ptr: usize, pub size: i32 }
 #[link(name="insertionsort", kind="static")]
 extern "C" {
+	#[allow(dead_code)]
 	pub fn c_test();
 	#[allow(improper_ctypes)]
 	//pub fn c_insertionsort(array: &mut [i32]);

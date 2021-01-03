@@ -1,8 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// compiler will probably ignore the inline specifier, though it should inline this function regardless.
-inline void swap(int32_t* array, int i, int j) {
+void swap(int32_t* array, int i, int j) {
 	int32_t tmp = array[j];
 	array[j] = array[i];
 	array[i] = tmp;

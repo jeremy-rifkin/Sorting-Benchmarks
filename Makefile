@@ -1,13 +1,33 @@
-# note: this is all "bad" and "hard-coded"
+OBJECT_DIR = object
+SRC_DIRS = src/calgos
+ifeq ($(OS),Windows_NT)
+	TARGET = $(OBJECT_DIR)/insertionsort.lib
+else
+	TARGET = $(OBJECT_DIR)/libinsertionsort.a
+endif
 
-.PHONY: is clean
+CC = gcc
+CCFLAGS = -m64 -Ofast -march=native -funroll-loops # TODO: -flto
+CPP = g++
+CPPFLAGS = $(CCFLAGS)
 
-is:
-	mkdir -p object
-	gcc -c src/calgos/insertionsort.c -o object/insertionsort.o -m64 -Ofast -march=native -funroll-loops
-	ar rcs object/insertionsort.lib object/insertionsort.o
-	#gcc-ar rcs src/calgos/insertionsort.lib --plugin=$(gcc --print-file-name=liblto_plugin.dll.a) src/calgos/insertionsort.o
-	#ranlib src/calgos/insertionsort.lib
+SRCS = $(shell find $(SRC_DIRS) -name '*.cpp' -or -name '*.c')
+OBJS = $(SRCS:%=$(OBJECT_DIR)/%.o)
+
+$(TARGET): $(OBJS)
+	ar rcs $@ $(OBJS)
+
+# c source
+$(OBJECT_DIR)/%.c.o: %.c
+	mkdir -p $(dir $@)
+	$(CC) $(CCFLAGS) -c $< -o $@
+
+# c++ source
+$(OBJECT_DIR)/%.cpp.o: %.cpp
+	mkdir -p $(dir $@)
+	$(CPP) $(CPPFLAGS) -c $< -o $@
+
+.PHONY: clean
 
 clean:
-	rm object/insertionsort.lib object/insertionsort.o
+	rm -r $(OBJECT_DIR)
