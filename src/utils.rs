@@ -9,9 +9,17 @@
 
 #[cfg(target_family = "unix")]
 pub fn set_priority() {
-	let thread = thread_priority::Thread::current().unwrap();
-	thread_priority::unix::set_thread_priority_and_policy(thread.id, thread_priority::ThreadPriority::Max, thread_priority::unix::ThreadSchedulePolicy::Realtime).unwrap();
-	//thread_priority::unix::set_current_thread_priority(thread_priority::ThreadPriority::Max).unwrap();
+	thread_priority::unix::set_current_thread_priority(thread_priority::ThreadPriority::Max).unwrap();
+	// TODO: investigate permission requirements of reltime static priorities
+	// https://man7.org/linux/man-pages/man3/pthread_setschedparam.3.html #NOTES
+	// https://man7.org/linux/man-pages/man7/sched.7.html #Privileges and resource limits
+	//thread_priority::unix::set_thread_priority_and_policy(
+	//	thread_priority::Thread::current().unwrap().id,
+	//	thread_priority::ThreadPriority::Max,
+	//	thread_priority::unix::ThreadSchedulePolicy::Realtime(
+	//		thread_priority::unix::RealtimeThreadSchedulePolicy::Fifo
+	//	)
+	//).unwrap();
 }
 
 #[cfg(target_family = "windows")]
