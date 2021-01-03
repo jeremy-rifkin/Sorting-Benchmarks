@@ -22,6 +22,7 @@ fn sink<T: Ord>(array: &mut[T], i: usize, heap_size: usize) {
 		}
 	}
 }
+
 pub fn heapsort_top_down<T: Ord>(array: &mut[T]) {
 	// build heap
 	for mut i in 0..array.len() {
@@ -39,6 +40,7 @@ pub fn heapsort_top_down<T: Ord>(array: &mut[T]) {
 		sink(array, 0, i);
 	}
 }
+
 pub fn heapsort_bottom_up<T: Ord>(array: &mut[T]) {
 	// build heap
 	for i in (0..(array.len() / 2)).rev() {
