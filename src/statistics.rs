@@ -349,7 +349,7 @@ pub fn t_lookup(df: i32) -> f64 {
 	if df <= 30 {
 		T_TABLE.get(&df).unwrap().4
 	} else if df <= 100 {
-		let df = (df + 9) / 10; // ceil division df / 10
+		let df = ((df + 9) / 10) * 10; // round df up to the nearest power of 10
 		T_TABLE.get(&df).unwrap().4
 	} else {
 		T_TABLE.get(&0).unwrap().4
