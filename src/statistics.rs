@@ -94,16 +94,16 @@ fn gamma(x: f64) -> f64 {
 	}
 }
 /// Constant value for `ln(pi)`
-pub const LN_PI: f64 = 1.1447298858494001741434273513530587116472948129153;
+const LN_PI: f64 = 1.1447298858494001741434273513530587116472948129153;
 /// Constant value for `ln(2 * sqrt(e / pi))`
-pub const LN_2_SQRT_E_OVER_PI: f64 = 0.6207822376352452223455184457816472122518527279025978;
+const LN_2_SQRT_E_OVER_PI: f64 = 0.6207822376352452223455184457816472122518527279025978;
 // https://docs.rs/statrs/0.13.0/src/statrs/function/gamma.rs.html#33-57
 /// Computes the logarithm of the gamma function
 /// with an accuracy of 16 floating point digits.
 /// The implementation is derived from
 /// "An Analysis of the Lanczos Gamma Approximation",
 /// Glendon Ralph Pugh, 2004 p. 116
-pub fn ln_gamma(x: f64) -> f64 {
+fn ln_gamma(x: f64) -> f64 {
 	if x < 0.5 {
 		let s = GAMMA_DK
 			.iter()
