@@ -23,14 +23,12 @@ pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, m
 		i += 1;
 	}
 	for j in (0..=i).rev() {
-		println!("+ {}", gap_function(j));
 		insertion_gap(slice, gap_function(j));
 	}
 }
 
 pub fn shell_function_known<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, k0: u32, kf: u32) {
 	for j in (kf..=k0).rev() {
-		println!("{}", gap_function(j));
 		insertion_gap(slice, gap_function(j));
 	}
 }
@@ -38,7 +36,6 @@ pub fn shell_function_known<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> us
 pub fn shell_function_recursive<T: Ord>(slice: &mut [T], gap_function: fn(usize) -> usize, h0: usize, hmin: usize) {
 	let mut h = h0;
 	while h >= hmin {
-		println!("{}", h);
 		insertion_gap(slice, h);
 		let newh = gap_function(h);
 		if newh == h {
