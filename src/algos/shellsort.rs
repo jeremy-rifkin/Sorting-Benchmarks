@@ -45,7 +45,6 @@ pub fn shell_function_recursive<T: Ord>(slice: &mut [T], gap_function: fn(usize)
 	}
 }
 
-#[allow(dead_code)]
 pub fn shellsort_knuth<T: Ord>(slice: &mut [T]) {
 	// (3^k - 1) / 2 not exceeding ceil(n / 3)
 	shell_function_known(
@@ -56,7 +55,6 @@ pub fn shellsort_knuth<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-#[allow(dead_code)]
 pub fn shellsort_sedgewick82<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
@@ -66,7 +64,6 @@ pub fn shellsort_sedgewick82<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-#[allow(dead_code)]
 pub fn shellsort_sedgewick86<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
@@ -78,7 +75,6 @@ pub fn shellsort_sedgewick86<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-#[allow(dead_code)]
 pub fn shellsort_gonnet_baeza<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function_recursive(
@@ -89,7 +85,6 @@ pub fn shellsort_gonnet_baeza<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-#[allow(dead_code)]
 pub fn shellsort_tokuda<T: Ord>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(

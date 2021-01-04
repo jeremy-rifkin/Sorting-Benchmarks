@@ -168,12 +168,19 @@ fn main() {
 		sfn!(algos::insertionsort_unsafe::<i32>,     "O(n^2)"),
 		sfn!(algos::insertionsort_unsafe_2::<i32>,   "O(n^2)"),
 		sfn!(algos::insertionsort_c,                 "O(n^2)"),
+		sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
+		sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),
+		sfn!(algos::shellsort_sedgewick86::<i32>,    "O(n^(4/3))"),
+		sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
+		sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
 		sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
 		sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 		sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
 		sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
 		sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
 		sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
+		sfn!(algos::mergesort_adaptive::<i32>,       "O(n log n)"),
+		sfn!(algos::mergesort_double_hybrid::<i32>,  "O(n log n)"),
 		sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
 		sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
 		sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
@@ -183,7 +190,8 @@ fn main() {
 		sfn!(algos::quicksort_hybrid_unsafe::<i32>,  "O(n log n)"),
 		sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
 		sfn!(algos::radixsort,                       "O(n)"),
-		sfn!(algos::rustsort::<i32>,                 "O(n log n)")
+		sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
+		sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)")
 	];
 
 	// run tests
