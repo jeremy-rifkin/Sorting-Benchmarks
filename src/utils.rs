@@ -8,6 +8,7 @@
 }
 
 #[cfg(target_family = "unix")]
+#[cfg(not(tarpaulin_include))]
 pub fn set_priority() {
 	thread_priority::unix::set_current_thread_priority(thread_priority::ThreadPriority::Max).unwrap();
 	// TODO: investigate permission requirements of reltime static priorities
@@ -23,6 +24,7 @@ pub fn set_priority() {
 }
 
 #[cfg(target_family = "windows")]
+#[cfg(not(tarpaulin_include))]
 pub fn set_priority() {
 	winproc::Process::current().set_priority(winproc::PriorityClass::Realtime).unwrap();
 	//winproc::Thread::current().set_priority(winproc::PriorityLevel::TimeCritical).unwrap();
