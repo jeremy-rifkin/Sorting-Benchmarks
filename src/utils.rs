@@ -48,6 +48,6 @@ pub fn commafy(mut num: usize) -> String {
 	return String::from_utf8(s).unwrap();
 }
 
-pub fn verify_sorted(array: &[i32]) {
+pub fn verify_sorted<T: Ord + std::fmt::Debug>(array: &[T]) {
 	assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
 }
