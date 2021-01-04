@@ -114,6 +114,11 @@ fn test_shellsort_tokuda() {
 }
 
 #[test]
+fn test_shellsort_ciura() {
+	test_sorting_algorithm(algos::shellsort::shellsort_ciura);
+}
+
+#[test]
 fn test_heapsort_top_down() {
 	test_sorting_algorithm(algos::heapsort::heapsort_top_down);
 }
