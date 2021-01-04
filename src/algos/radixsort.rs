@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
-fn bucketsort<T: Copy>(array: &mut [T], extract_bits: fn(&mut T) -> u8) {
-    let mut buckets: Vec<VecDeque<T>> = vec![VecDeque::new(); 256];
+fn bucketsort<T: Copy>(array: &mut [T], buckets: &mut Vec<VecDeque<T>>, extract_bits: fn(&mut T) -> u8) {
     for n in array.iter_mut() {
         buckets[extract_bits(n) as usize].push_back(*n);
     }
@@ -19,8 +18,15 @@ fn bucketsort<T: Copy>(array: &mut [T], extract_bits: fn(&mut T) -> u8) {
 }
 
 pub fn radixsort(array: &mut [i32]) {
-    bucketsort(array, |x| *x as u8);
-    bucketsort(array, |x| (*x >> 8) as u8);
-    bucketsort(array, |x| (*x >> 16) as u8);
-    bucketsort(array, |x| ((*x >> 24) as u8) ^ 0x80);
+	// 1-time bucket allocation shared over all bucketsorts
+	// correct because bucketsort will fully empty out each deque
+	// on average each deque will expect array.len() / 256 items however over-allocating by a
+	// factor of 2 should substantially reduce runtime allocations
+	// any runtime allocations will also be carried across the bucketsort calls
+	// note: linked list performance was also tested and deques have much improved performance
+	let mut buckets: Vec<VecDeque<i32>> = vec![VecDeque::with_capacity(std::cmp::max(array.len() / 256 * 2, 8)); 256];
+    bucketsort(array, &mut buckets, |x| *x as u8);
+    bucketsort(array, &mut buckets, |x| (*x >> 8) as u8);
+    bucketsort(array, &mut buckets, |x| (*x >> 16) as u8);
+    bucketsort(array, &mut buckets, |x| ((*x >> 24) as u8) ^ 0x80);
 }
