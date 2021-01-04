@@ -10,12 +10,12 @@ pub fn stdev(array: &[u64], mean: f64) -> f64 {
 }
 
 // struct used for describing the quartiles of a data set
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct QuartileDescriptor {
-	q1: f64,
-	q2: f64,
-	q3: f64,
-	iqr: f64
+	pub q1: f64,
+	pub q2: f64,
+	pub q3: f64,
+	pub iqr: f64
 }
 
 // returns the median value of an array
