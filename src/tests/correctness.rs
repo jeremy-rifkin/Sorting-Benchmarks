@@ -1,8 +1,10 @@
+#[allow(dead_code)]
+
 use rand::rngs::SmallRng;
 use rand::{RngCore, SeedableRng};
 
-use sorting_benchmarks::*;
-use utils::*;
+use crate::algos;
+use crate::utils::*;
 
 const TEST_ARRAY_SIZE: usize = 1000;
 const FIXED_SEED: u64 = 0xB000000; // spooky

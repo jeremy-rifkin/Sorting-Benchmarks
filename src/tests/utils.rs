@@ -1,4 +1,4 @@
-use sorting_benchmarks::utils;
+use crate::utils;
 
 #[test]
 fn test_commafy() {
@@ -18,3 +18,4 @@ fn test_verify_sorted() {
 fn test_verify_unsorted() {
 	utils::verify_sorted(&[1,1,1,1,0]);
 }
+

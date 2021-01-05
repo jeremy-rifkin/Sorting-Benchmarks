@@ -1,4 +1,4 @@
-use sorting_benchmarks::statistics;
+use crate::statistics;
 
 fn mean(array: &[u64]) -> f64 {
 	array.iter().sum::<u64>() as f64 / array.len() as f64
