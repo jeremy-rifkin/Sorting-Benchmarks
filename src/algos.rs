@@ -1,4 +1,3 @@
-#[allow(unused_imports)]
 pub mod bubblesort;
 pub use bubblesort::*;
 
