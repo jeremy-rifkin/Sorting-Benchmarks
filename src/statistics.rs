@@ -278,9 +278,6 @@ pub fn two_sample_t_test(mean1: f64, mean2: f64, s1: f64, s2: f64, n1: usize, n2
 	let (v1, v2) = ((n1 - 1) as f64, (n2 - 1) as f64);
 	let (n1, n2) = (n1 as f64, n2 as f64);
 	let t = (mean1 - mean2).abs() / (s1.powi(2) / n1 + s2.powi(2) / n2).sqrt();
-	if t == 0.0 {
-		return 0.5 * if two_tailed { 2.0 } else { 1.0 }; // ?
-	}
 	let v = (s1.powi(2) / n1 + s2.powi(2) / n2).powi(2) / (s1.powi(4) / (n1.powi(2) * v1) + s2.powi(4) / (n2.powi(2) * v2));
 	(1.0 - t_cdf(t, v)) * if two_tailed { 2.0 } else { 1.0 }
 }
