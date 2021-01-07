@@ -33,21 +33,25 @@ fn create_random_array(size: usize, rng: &mut SmallRng) -> Vec<i32> {
 	return array;
 }
 
-fn test_sorting_algorithm(mut algorithm: impl FnMut(&mut [i32])) {
-	let mut array = create_sorted_array(TEST_ARRAY_SIZE);
+fn test_sorting_algorithm_size(mut algorithm: impl FnMut(&mut [i32]), size: usize) {
+	let mut array = create_sorted_array(size);
 	algorithm(&mut array);
 	verify_sorted(&array);
 
-	let mut array = create_reversed_array(TEST_ARRAY_SIZE);
+	let mut array = create_reversed_array(size);
 	algorithm(&mut array);
 	verify_sorted(&array);
 
 	let mut rng = SmallRng::seed_from_u64(FIXED_SEED);
 	for _i in 0..5 {
-		let mut array = create_random_array(TEST_ARRAY_SIZE, &mut rng);
+		let mut array = create_random_array(size, &mut rng);
 		algorithm(&mut array);
 		verify_sorted(&array);
 	}
+}
+
+fn test_sorting_algorithm(algorithm: impl FnMut(&mut [i32])) {
+	test_sorting_algorithm_size(algorithm, TEST_ARRAY_SIZE);
 }
 
 #[test]
@@ -153,6 +157,18 @@ fn test_mergesort_in_place_naive() {
 #[test]
 fn test_mergesort_in_place() {
 	test_sorting_algorithm(algos::mergesort::mergesort_in_place);
+}
+
+#[test]
+fn test_mergesort_adaptive() {
+	test_sorting_algorithm(algos::mergesort::mergesort_adaptive);
+}
+
+#[test]
+fn test_mergesort_double_hybrid() {
+	test_sorting_algorithm(algos::mergesort::mergesort_double_hybrid);
+	// coverage for an edge case:
+	test_sorting_algorithm_size(algos::mergesort::mergesort_double_hybrid, 10_000);
 }
 
 #[test]
