@@ -189,29 +189,27 @@ fn beta(x: f64, y: f64) -> f64 {
 	gammaprod(&[x, y], &[x + y])
 }
 
-// a and b are the parameters of the beta function
-// x1 is the lower bound of the integral, x2 is the upper bound
-// we're looking for x1 = 0, x2 = x
-fn betainc(a: f64, b: f64, x1: f64, x2: f64) -> f64 {
-	let a = a;
-	if x1 == x2 {
-		0.0
-	} else if x1 == 0.0 {
-		// this is the only branch currently taken by the program
-		if x1 == 0.0 && x2 == 1.0 {
-			beta(a, b)
-		} else {
-			x2.powf(a) * hypergeometric2F1(a, 1.0 - b, a + 1.0, x2) / a
-		}
-	} else {
-		let s1 = x2.powf(a) * hypergeometric2F1(a, 1.0 - b, a + 1.0, x2);
-		let s2 = x1.powf(a) * hypergeometric2F1(a, 1.0 - b, a + 1.0, x1);
-		(s1 - s2) / a
-	}
+// a and b are the parameters of the beta function, x is the upper limit of integration (lower = 0)
+fn betainc(a: f64, b: f64, x: f64) -> f64 {
+	assert!(x > 0.0);
+	//if x == 0.0 {
+	//	// this can't happen
+	//	// only way to get here is if df = 0
+	//	assert!(false);
+	//	0.0
+	//} else if x == 1.0 {
+	//	// this can't happen
+	//	// only way to get here is if t is zero or if the difference between the means is zero
+	//	// if t is zero, betainc isn't used
+	//	assert!(false);
+	//	beta(a, b)
+	//} else {
+		x.powf(a) * hypergeometric2F1(a, 1.0 - b, a + 1.0, x) / a
+	//}
 }
 
 fn betainc_regularized(a: f64, b: f64, x: f64) -> f64 {
-	betainc(a, b, 0.0, x) / beta(a, b)
+	betainc(a, b, x) / beta(a, b)
 }
 
 // computes part of the hypergeometric function while avoiding overflow from the rising factorials
