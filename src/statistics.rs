@@ -243,10 +243,11 @@ fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 		if v >= 1e10 { // substantial loss of precision
 			return f64::NAN;
 		}
-		if n >= 10_000 || v.is_infinite() || v.is_nan() {
+		#[cfg(not(tarpaulin_include))]
+		{if n >= 10_000 || v.is_infinite() || v.is_nan() {
 			println!("{} {}", v, n);
 			panic!("at the disco");
-		}
+		}}
 		n += 1;
 	}
 	sum
