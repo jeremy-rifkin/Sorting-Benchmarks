@@ -12,6 +12,7 @@ mod algos;
 mod statistics;
 mod utils;
 mod swap_unsafe;
+mod tests;
 
 const MIN_TEST_SIZE: usize = 10;
 const MAX_TEST_SIZE: usize = 1_000_000;
