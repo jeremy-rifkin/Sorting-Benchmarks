@@ -1,3 +1,6 @@
+// this file should be excluded from test coverage
+#![cfg(not(tarpaulin_include))]
+
 use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
