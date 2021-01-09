@@ -2,7 +2,8 @@ pub trait SwapUnsafe {
 	unsafe fn swap_unchecked(&mut self, i: usize, j: usize);
 }
 
-impl<T: Copy> SwapUnsafe for [T] {
+//impl<T: Copy> SwapUnsafe for [T] {
+impl<T> SwapUnsafe for [T] {
 	#[inline]
 	unsafe fn swap_unchecked(&mut self, i: usize, j: usize) {
 		//let tmp = *self.get_unchecked(j);

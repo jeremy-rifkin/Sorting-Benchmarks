@@ -23,7 +23,7 @@ pub fn insertionsort_unsafe<T: Ord + Copy>(array: &mut [T]) {
 
 use crate::swap_unsafe::SwapUnsafe;
 
-pub fn insertionsort_unsafe_2<T: Ord + Copy>(array: &mut [T]) {
+pub fn insertionsort_unsafe_2<T: Ord>(array: &mut [T]) {
 	unsafe {
 		for mut i in 1..array.len() {
 			while i > 0 && array.get_unchecked(i - 1) > array.get_unchecked(i) {
