@@ -245,7 +245,8 @@ fn hypergeometric2F1(a: f64, b: f64, c: f64, z: f64) -> f64 {
 		}
 		#[cfg(not(tarpaulin_include))]
 		{if n >= 10_000 || v.is_infinite() || v.is_nan() {
-			println!("{} {}", v, n);
+			println!("v: {} n: {}", v, n);
+			println!("a: {} b: {} c: {} z: {}", a, b, c, z);
 			panic!("at the disco");
 		}}
 		n += 1;
