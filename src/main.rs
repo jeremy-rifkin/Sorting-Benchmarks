@@ -135,7 +135,9 @@ impl std::fmt::Display for BenchmarkResult {
 		// TODO: show within 5% of min as well?
 		let v = self.mean / 1e6;
 		let ci = self.t_ci();
-		write!(f, "{:.5} ± {:.5} ({:.0}%){}", v, ci, ci / v * 100.0, if self.is_fastest {" *"} else {""})
+		write!(f,
+			"{:.5} ± {:.5} ({:.0}%){}",
+			    v,     ci, ci / v * 100.0, if self.is_fastest {" *"} else {""})
 	}
 }
 
@@ -145,7 +147,9 @@ impl BenchmarkResult {
 		if self.stdev == 0.0 || other.stdev == 0.0 { // will cause problems / infinite / nan values
 			return 0.0; // I guess?
 		}
-		let p = statistics::two_sample_t_test(self.mean, other.mean, self.stdev, other.stdev, self.count, other.count, true);
+		let p = statistics::two_sample_t_test(self.mean, other.mean,
+		                                      self.stdev, other.stdev,
+		                                      self.count, other.count, true);
 		//println!("{}", p);
 		assert!(!p.is_nan(), "problematic value: {}", p);
 		assert!(!p.is_infinite(), "problematic value: {}", p);
@@ -167,9 +171,7 @@ impl BenchmarkResult {
 #[derive(PartialEq)]
 enum MType {
 	IdAssignment,
-	WorkAssignment,
-	Result,
-	Done // TODO
+	WorkAssignment
 }
 
 #[derive(Clone, Copy)]
@@ -178,40 +180,27 @@ struct WorkDescriptor {
 	size: usize
 }
 
-union M_Contents {
+union MContents {
 	id: usize,
-	work: WorkDescriptor,
-	result: Option<BenchmarkResult>
+	work: WorkDescriptor
 }
 
 struct MPMessage {
 	m_type: MType,
-	contents: M_Contents
+	contents: MContents
 }
 
 impl MPMessage {
 	pub fn new_id_message(id: usize) -> MPMessage {
 		MPMessage {
 			m_type: MType::IdAssignment,
-			contents: M_Contents { id }
+			contents: MContents { id }
 		}
 	}
 	pub fn new_work_message(work: WorkDescriptor) -> MPMessage {
 		MPMessage {
 			m_type: MType::WorkAssignment,
-			contents: M_Contents { work }
-		}
-	}
-	pub fn new_result_message(result: Option<BenchmarkResult>) -> MPMessage {
-		MPMessage {
-			m_type: MType::Result,
-			contents: M_Contents { result }
-		}
-	}
-	pub fn new_done_message() -> MPMessage {
-		MPMessage {
-			m_type: MType::Done,
-			contents: M_Contents { id: 0 }
+			contents: MContents { work }
 		}
 	}
 	pub fn get_id_message(&self) -> usize {
@@ -221,10 +210,6 @@ impl MPMessage {
 	pub fn get_work_message(&self) -> WorkDescriptor {
 		assert!(self.m_type == MType::WorkAssignment);
 		unsafe { self.contents.work }
-	}
-	pub fn get_result_message(&self) -> Option<BenchmarkResult> {
-		assert!(self.m_type == MType::Result);
-		unsafe { self.contents.result }
 	}
 }
 
@@ -277,16 +262,6 @@ impl BenchmarkManager {
 			results_table
 		}
 	}
-	// benchmarks a sorting algorithm
-	// args
-	//  sort: function pointer for the algorithm to use
-	//  size: array size to test
-	//  n_tests: maximum number of tests to perform
-	// return
-	//  None if less than 30 tests could be completed within 10seconds (excluding cache buster and setup)
-	//  BenchmarkResult otherwise
-	// None return is used as a flag in the driver code to stop benchmarking an algorithm after it
-	// becomes unbearably slow.
 	pub fn run_bench(sort: fn(&mut [i32]), size: usize) -> u64 {
 		// setup tests
 		let mut test_vector: Vec<i32> = vec![0; size];
@@ -335,17 +310,15 @@ impl BenchmarkManager {
 				let id = rx.recv().unwrap().get_id_message();
 				// begin work loop
 				for received in rx {
-					match received.m_type {
-						MType::IdAssignment => {panic!("unexpected IdAssignment message");},
-						MType::WorkAssignment => {
-							let job = received.get_work_message();
-							let result = BenchmarkManager::run_bench(self_ptr.algorithms[job.algorithm_i].0, TEST_SIZES[job.size]);
-							coordinator_tx.send((id, result)).unwrap();
-						},
-						MType::Result => {panic!("unhandled WorkAssignment message");},
-						MType::Done => {
-							break;
-						}
+					if received.m_type == MType::WorkAssignment {
+						let job = received.get_work_message();
+						let result = BenchmarkManager::run_bench(
+							self_ptr.algorithms[job.algorithm_i].0,
+							TEST_SIZES[job.size]
+						);
+						coordinator_tx.send((id, result)).unwrap();
+					} else {
+						panic!("unexpected non-WorkAssignment message received in worker");
 					}
 				}
 			}));
@@ -389,7 +362,9 @@ impl BenchmarkManager {
 		}
 		// our final results will be Vec<Vec<Option<BenchmarkResult>>> but as we get the data needed
 		// for these jobs, we have to store in a Vec<Vec<Vec<u64>>>
-		let mut results = vec![vec![Vec::<u64>::with_capacity(N_TESTS); TEST_SIZES.len()]; self.algorithms.len()];
+		let mut results = vec![
+							   vec![Vec::<u64>::with_capacity(N_TESTS); TEST_SIZES.len()];
+						  self.algorithms.len()];
 		// receive loop
 		// goal:
 		//   recieve results from the worker threads
@@ -404,11 +379,15 @@ impl BenchmarkManager {
 			if !jobs.is_empty() {
 				// dispatch new work
 				let job = jobs.pop().unwrap();
-				println!("{} {} {}", utils::commafy(jobs.len()), self.algorithms[job.0].1, utils::commafy(TEST_SIZES[job.1]));
-				channels[thread_id].as_ref().unwrap().send(MPMessage::new_work_message(WorkDescriptor {
-					algorithm_i: job.0,
-					size: job.1
-				})).unwrap();
+				println!("{} {} {}", utils::commafy(jobs.len()),
+									 self.algorithms[job.0].1,
+									 utils::commafy(TEST_SIZES[job.1]));
+				channels[thread_id].as_ref()
+								   .unwrap()
+								   .send(MPMessage::new_work_message(WorkDescriptor {
+				                       algorithm_i: job.0,
+				                       size: job.1
+				                   })).unwrap();
 				assignments[thread_id] = Option::Some(job);
 			} else {
 				// teardown if there is no work
@@ -428,17 +407,19 @@ impl BenchmarkManager {
 		for algorithm_i in 0..self.algorithms.len() {
 			for size_i in 0..TEST_SIZES.len() {
 				// compute stats
-				// We had an issue with a few benchmarks randomly having massive standard deviations every time
-				// we'd run the benchmark just a couple results would have anomalies and there wasn't any
-				// consistency or pattern to which benchmarks would have anomalies.
-				// The reason for the massive standard deviations was due to just a couple (usually just 1)
-				// extraneous results in the results vector (e.g. in a benchmark whose result's mean was
-				//  ~2,200ns, there was an outlier of 112,600ns blowing up the standard deviation calculation).
-				// This filter here uses Tukey's method to filter out outliers.
+				// We had an issue with a few benchmarks randomly having massive standard deviations
+				// every time we'd run the benchmark just a couple results would have anomalies and
+				// there wasn't any consistency or pattern to which benchmarks would have anomalies.
+				// The reason for the massive standard deviations was due to just a couple (usually
+				// just 1) extraneous results in the results vector (e.g. in a benchmark whose
+				// result's mean was ~2,200ns, there was an outlier of 112,600ns blowing up the
+				// standard deviation calculation). Here we use Tukey's method to discard outliers.
 				// note results is shadowed twice here
 				let results = &results[algorithm_i][size_i];
 				if results.len() != N_TESTS {
-					println!("---------->> {} {} {}", self.algorithms[algorithm_i].1, utils::commafy(TEST_SIZES[size_i]), results.len());
+					println!("---------->> {} {} {}", self.algorithms[algorithm_i].1,
+													  utils::commafy(TEST_SIZES[size_i]),
+													  results.len());
 				}
 				if results.len() == 0 {
 					self.results_table[algorithm_i][size_i] = Option::None;
@@ -530,7 +511,9 @@ impl BenchmarkManager {
 	}
 	pub fn print_insertion_sorts(&mut self) {
 		println!("Insertion sorts:");
-		self.print(|n, _| n.contains("insertion") || n.contains("selection") || n.contains("cocktail"));
+		self.print(|n, _| n.contains("insertion")
+						|| n.contains("selection")
+						|| n.contains("cocktail"));
 		println!();
 	}
 	pub fn print_bubble_sorts(&mut self) {
