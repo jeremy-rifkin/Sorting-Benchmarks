@@ -81,7 +81,7 @@ mod tests;
 //
 
 const MIN_TEST_SIZE: usize = 10;
-const MAX_TEST_SIZE: usize = 1_000_000; // 100_000; // 1_000_000;
+const MAX_TEST_SIZE: usize = 1_000_000;
 const N_TESTS: usize = 200;
 const ALPHA: f64 = 0.001;
 
