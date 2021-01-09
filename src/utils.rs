@@ -10,6 +10,7 @@
 // this macro assists with extending the lifetime of an object
 // it is short for extend_lifetime(LifetimeContainer(obj)).0
 pub struct LifetimeContainer<'a, T>(pub &'a T);
+#[cfg(not(tarpaulin_include))]
 pub unsafe fn extend_lifetime<'b, T>(lc: LifetimeContainer<'b, T>) -> LifetimeContainer<'static, T> {
 	std::mem::transmute::<LifetimeContainer<'b, T>, LifetimeContainer<'static, T>>(lc)
 }

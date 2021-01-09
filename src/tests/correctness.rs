@@ -70,6 +70,11 @@ fn test_cocktail_shaker() {
 }
 
 #[test]
+fn test_cocktail_shaker_unsafe() {
+	test_sorting_algorithm(algos::cocktail_shaker::cocktail_shaker_unsafe);
+}
+
+#[test]
 fn test_selectionsort() {
 	test_sorting_algorithm(algos::selectionsort::selectionsort);
 }
