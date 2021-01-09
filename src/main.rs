@@ -1,14 +1,15 @@
-// this file should be excluded from test coverage
-#![cfg(not(tarpaulin_include))]
+#![cfg(not(tarpaulin_include))] // this file should be excluded from test coverage
 
 use std::collections::HashMap;
+use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
 use lazy_static::lazy_static;
+use num_cpus;
 use prettytable::*;
 use rand::rngs::SmallRng;
-use rand::{RngCore, SeedableRng};
+use rand::{Rng, RngCore, SeedableRng, seq::SliceRandom};
 use regex::Regex;
 
 mod algos;
@@ -17,8 +18,70 @@ mod utils;
 mod swap_unsafe;
 mod tests;
 
+//
+// This is the driver code for the algorithm benchmarking.
+//
+// Benchmarking is hard. As Emery Berger points out in his talk "Performance Matters"
+// (https://www.youtube.com/watch?v=r-TLSBdHe1A) there are a ton of complex hardware and software
+// factors that effect application performance. These include caching, branch prediction, random
+// layout of executable binary in memory.
+//
+// These factors are really hard to address. Berger presented a tool called Coz which is aimed at
+// application profiling and identifying targets for performance improvement. Berger also presented
+// a tool called stabilizer which modifies executable layout during runtime to eliminate the effect
+// of linker layout. The effects of code layout on performance are largely due to cache / branch
+// predictor conflict misses (if frequently used pieces of code happen to conflict). I don't know
+// how substantially this effects modern cpus (which tend to use associative caches), however, it
+// would explain some anomalies we've observed while working on this. I'd like to use stabilizer,
+// however, it is a compile-time plugin for C++ and I think getting it to work with Rust is outside
+// the scope of this project.
+//
+// Here's some of the issues we've encountered:
+//  - In 200 runs with mean runtime ~2,200ns, there was an outlier of 112,600ns. This result blew up
+//    the standard deviation calculation. This happened on a couple algorithms on a couple
+//    test-sizes a couple runs but there was no pattern to which algorithms or when it would happen.
+//    Because of the extreme nature of these outliers, the outliers are simply discarded.
+//  - We'd get really tight distributions (98% CI == +/- 0%) for the performance of some algorithms
+//    however, on the next execution of the program, even without code changes, we'd get
+//    substantially different results. The p-value of a 2-sample t-test for these instances is 0.
+//
+// Here are some of the factors contributing to benchmarking challenges:
+//  - Cache
+//  - Branch prediction
+//  - Linker layout
+//  - Os task scheduling
+//  - Locations of objects in the heap?
+//  - CPU throttling
+//
+// Here are some of the techniques used for mitigation:
+//  - Instead of running all insertion sorts size=1,000 then all selection sorts size=1,000 etc. and
+//    everything sequentially, every single individual algorithm call is setup and shuffled. Then a
+//    thread pool will begin performing benchmarks from the problem pool. This is an attempt to
+//    improve independence between each algorithm runs.
+//  - OS calls are made to request preferential scheduling. This should improve consistency.
+//  - Threads sleep between benchmark runs and only N_Cores / 2 threads are spun up. This is to help
+//    prevent thermal throttling and improve consistency of cache performance.
+//
+// We experimented with running a cache buster between every benchmark execution (writing to a
+// massive block of memory to flush out the cache). This has been discarded because it was not
+// highly effective at addressing benchmarking issues, was very slow, and would be problematic in a
+// multi-threaded context.
+//
+// Rust performs boundary checks on every array access. This causes a substantial performance hit
+// (and may effect branch prediction). The various sorting algorithms we've implemented are much
+// slower than rust's built-in sorting algorithms. This is partially due to unsafe array accesses
+// (rust's built-in algorithms use unsafe accesses to disable boundary checks), and we aim to have
+// everything implemented with unsafe accesses. Rust's sorting algorithms are also faster because
+// they are advanced hybrid sorting algorithms and have had much more work put into optimizing them
+// than we've put into optimizing ours. We hope to get our algorithms to have comparable performance
+// to rust's builtin, but it isn't strictly necessary for our program: we just want to look at how
+// algorithms compare to each other on real hardware.
+//
+// Note: This driver is not done. There are still some implementation details left to handle.
+//
+
 const MIN_TEST_SIZE: usize = 10;
-const MAX_TEST_SIZE: usize = 1_000_000;
+const MAX_TEST_SIZE: usize = 1_000_000; // 100_000; // 1_000_000;
 const N_TESTS: usize = 200;
 const ALPHA: f64 = 0.001;
 
@@ -40,7 +103,26 @@ lazy_static! {
 	};
 }
 
-#[derive(Clone, Debug)]
+lazy_static! {
+	static ref TEST_SIZES: Vec<usize> = {
+		let mut v = Vec::new();
+		let mut test_size = MIN_TEST_SIZE;
+		while test_size <= MAX_TEST_SIZE {
+			v.push(test_size);
+			test_size *= 10;
+		}
+		v
+	};
+}
+
+lazy_static! {
+	static ref N_WORKERS: usize = {
+		//num_cpus::get_physical() - 1
+		num_cpus::get_physical() / 2
+	};
+}
+
+#[derive(Clone, Copy, Debug, Default)]
 struct BenchmarkResult {
 	mean: f64,
 	stdev: f64,
@@ -50,6 +132,7 @@ struct BenchmarkResult {
 
 impl std::fmt::Display for BenchmarkResult {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		// TODO: show within 5% of min as well?
 		let v = self.mean / 1e6;
 		let ci = self.t_ci();
 		write!(f, "{:.5} ± {:.5} ({:.0}%){}", v, ci, ci / v * 100.0, if self.is_fastest {" *"} else {""})
@@ -81,202 +164,417 @@ impl BenchmarkResult {
 	}
 }
 
-// flush cpu cache between benchmarks
-// 20M / 4 bytes (i32)
-const DESTROYER_SIZE: usize = 12_000_000 / 4;
-#[allow(dead_code)]
-fn destroy_cache() {
-	let mut a = vec![0; DESTROYER_SIZE];
-	for i in 0..DESTROYER_SIZE {
-		a[i] = i as i32;
+#[derive(PartialEq)]
+enum MType {
+	IdAssignment,
+	WorkAssignment,
+	Result,
+	Done // TODO
+}
+
+#[derive(Clone, Copy)]
+struct WorkDescriptor {
+	algorithm_i: usize,
+	size: usize
+}
+
+union M_Contents {
+	id: usize,
+	work: WorkDescriptor,
+	result: Option<BenchmarkResult>
+}
+
+struct MPMessage {
+	m_type: MType,
+	contents: M_Contents
+}
+
+impl MPMessage {
+	pub fn new_id_message(id: usize) -> MPMessage {
+		MPMessage {
+			m_type: MType::IdAssignment,
+			contents: M_Contents { id }
+		}
+	}
+	pub fn new_work_message(work: WorkDescriptor) -> MPMessage {
+		MPMessage {
+			m_type: MType::WorkAssignment,
+			contents: M_Contents { work }
+		}
+	}
+	pub fn new_result_message(result: Option<BenchmarkResult>) -> MPMessage {
+		MPMessage {
+			m_type: MType::Result,
+			contents: M_Contents { result }
+		}
+	}
+	pub fn new_done_message() -> MPMessage {
+		MPMessage {
+			m_type: MType::Done,
+			contents: M_Contents { id: 0 }
+		}
+	}
+	pub fn get_id_message(&self) -> usize {
+		assert!(self.m_type == MType::IdAssignment);
+		unsafe { self.contents.id }
+	}
+	pub fn get_work_message(&self) -> WorkDescriptor {
+		assert!(self.m_type == MType::WorkAssignment);
+		unsafe { self.contents.work }
+	}
+	pub fn get_result_message(&self) -> Option<BenchmarkResult> {
+		assert!(self.m_type == MType::Result);
+		unsafe { self.contents.result }
 	}
 }
 
-// benchmarks a sorting algorithm
-// args
-//  sort: function pointer for the algorithm to use
-//  size: array size to test
-//  n_tests: maximum number of tests to perform
-// return
-//  None if less than 30 tests could be completed within 10seconds (excluding cache buster and setup)
-//  BenchmarkResult otherwise
-// None return is used as a flag in the driver code to stop benchmarking an algorithm after it
-// becomes unbearably slow.
-fn bench(sort: fn(&mut [i32]), size: usize, n_tests: usize) -> Option<BenchmarkResult> {
-	// setup tests
-	let mut test_vectors: Vec<Vec<i32>> = vec![vec![0; size]; n_tests];
-	let mut rng = SmallRng::seed_from_u64(RNG_SEED);
-	for i in 0..n_tests {
-		for j in 0..size {
-			test_vectors[i][j] = rng.next_u32() as i32;
+struct BenchmarkManager {
+	algorithms: Vec<(fn(&mut [i32]), String, &'static str)>,
+	results_table: Vec<Vec<Option<BenchmarkResult>>>
+}
+
+impl BenchmarkManager {
+	pub fn new() -> BenchmarkManager {
+		let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
+			sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
+			sfn!(algos::bubblesort_unsafe::<i32>,        "O(n^2)"),
+			sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
+			sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
+			sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
+			sfn!(algos::insertionsort_unsafe::<i32>,     "O(n^2)"),
+			sfn!(algos::insertionsort_unsafe_2::<i32>,   "O(n^2)"),
+			sfn!(algos::insertionsort_c,                 "O(n^2)"),
+			sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
+			sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),
+			sfn!(algos::shellsort_sedgewick86::<i32>,    "O(n^(4/3))"),
+			sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
+			sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
+			sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
+			sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
+			sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
+			sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
+			sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
+			sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
+			sfn!(algos::mergesort_adaptive::<i32>,       "O(n log n)"),
+			sfn!(algos::mergesort_double_hybrid::<i32>,  "O(n log n)"),
+			sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
+			sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
+			sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
+			sfn!(algos::quicksort_end_unsafe::<i32>,     "O(n log n)"),
+			sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
+			sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
+			sfn!(algos::quicksort_hybrid_unsafe::<i32>,  "O(n log n)"),
+			sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
+			sfn!(algos::radixsort,                       "O(n)"),
+			sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
+			sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)")
+		];
+		// TODO: single vec serving as 2D array? algorithms[i][j] = results[i * len + j]
+		let results_table = vec![vec![Option::None; TEST_SIZES.len()]; algorithms.len()];
+		BenchmarkManager {
+			algorithms,
+			results_table
 		}
 	}
-	// run tests
-	let mut results: Vec<u64> = Vec::with_capacity(n_tests);
-	let mut running_sum = 0u64; // running sum of the results
-	let mut completed = 0; // tests completed counter
-	for i in 0..n_tests {
+	// benchmarks a sorting algorithm
+	// args
+	//  sort: function pointer for the algorithm to use
+	//  size: array size to test
+	//  n_tests: maximum number of tests to perform
+	// return
+	//  None if less than 30 tests could be completed within 10seconds (excluding cache buster and setup)
+	//  BenchmarkResult otherwise
+	// None return is used as a flag in the driver code to stop benchmarking an algorithm after it
+	// becomes unbearably slow.
+	pub fn run_bench(sort: fn(&mut [i32]), size: usize) -> u64 {
+		// setup tests
+		let mut test_vector: Vec<i32> = vec![0; size];
+		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
+		for i in 0..size {
+			test_vector[i] = rng.next_u32() as i32;
+		}
 		thread::sleep(Duration::from_millis(10));
-		// flush cpu cache
-		destroy_cache();
-		// perform test
 		let start = Instant::now();
-		sort(&mut test_vectors[i]);
-		results.push(start.elapsed().as_nanos() as u64);
-		// update counters
-		completed += 1;
-		running_sum += results[i];
-		// if runtime exceeds 10 seconds...
-		if running_sum >= RUNTIME_LIMIT {
-			break;
-		}
+		sort(&mut test_vector);
+		let r = start.elapsed().as_nanos() as u64;
+		utils::verify_sorted(&test_vector);
+		r
 	}
-	// if not enough tests completed, return None
-	if completed < MIN_ACCEPTABLE_TESTS {
-		return Option::None;
-	}
-	// verify correctness just for good measure
-	for i in 0..completed {
-		utils::verify_sorted(&test_vectors[i]);
-	}
-	// compute stats
-	// We had an issue with a few benchmarks randomly having massive standard deviations every time
-	// we'd run the benchmark just a couple results would have anomalies and there wasn't any
-	// consistency or pattern to which benchmarks would have anomalies.
-	// The reason for the massive standard deviations was due to just a couple (usually just 1)
-	// extraneous results in the results vector (e.g. in a benchmark whose result's mean was
-	//  ~2,200ns, there was an outlier of 112,600ns blowing up the standard deviation calculation).
-	// This filter here uses Tukey's method to filter out outliers.
-	let q = statistics::quartiles(&results);
-	let results: Vec<u64> = results.into_iter()
-							.filter(|item| statistics::tukey(*item, &q, OUTLIER_COEFFICIENT))
-							.collect();
-	let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
-	let stdev = statistics::stdev(&results, mean);
-	Option::Some(BenchmarkResult {
-		mean,
-		stdev,
-		count: results.len(),
-		is_fastest: false // field will be used for display
-	})
-}
-
-fn main() {
-	utils::set_priority();
-	let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
-		sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
-		sfn!(algos::bubblesort_unsafe::<i32>,        "O(n^2)"),
-		sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
-		sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
-		sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
-		sfn!(algos::insertionsort_unsafe::<i32>,     "O(n^2)"),
-		sfn!(algos::insertionsort_unsafe_2::<i32>,   "O(n^2)"),
-		sfn!(algos::insertionsort_c,                 "O(n^2)"),
-		sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
-		sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),
-		sfn!(algos::shellsort_sedgewick86::<i32>,    "O(n^(4/3))"),
-		sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
-		sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
-		sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
-		sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
-		sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
-		sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
-		sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
-		sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
-		sfn!(algos::mergesort_adaptive::<i32>,       "O(n log n)"),
-		sfn!(algos::mergesort_double_hybrid::<i32>,  "O(n log n)"),
-		sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
-		sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
-		sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
-		sfn!(algos::quicksort_end_unsafe::<i32>,     "O(n log n)"),
-		sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
-		sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
-		sfn!(algos::quicksort_hybrid_unsafe::<i32>,  "O(n log n)"),
-		sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
-		sfn!(algos::radixsort,                       "O(n)"),
-		sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
-		sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)")
-	];
-
-	// run tests
-	let mut results = vec![Vec::new(); algorithms.len()]; // 2d matrix of results
-	let mut header = vec![String::from("")]; // start building the header now
-	let mut test_size = MIN_TEST_SIZE;
-	let n_tests = N_TESTS;
-	while test_size <= MAX_TEST_SIZE {
-		header.push(utils::commafy(test_size));
-		// test every algorithm for this test size
-		for (i, a) in algorithms.iter().enumerate() {
-			println!("{} {}", utils::commafy(test_size), a.1);
-			if test_size <= *LIMIT_TABLE.get(&a.2).unwrap() {
-				let b = bench(a.0, test_size, n_tests);
-				results[i].push(b);
-			} else {
-				results[i].push(Option::<BenchmarkResult>::None);
-			}
-		}
-		test_size *= 10;
-	}
-	// mins
-	for i in 0..results[0].len() {
-		let mut min_mean = Option::<f64>::None;
-		let mut min_result = Option::<usize>::None;
-		for j in 0..algorithms.len() {
-			let ar = &results[j][i];
-			if ar.is_some() {
-				let ar = ar.as_ref().unwrap();
-				if min_mean.is_none() || ar.mean < min_mean.unwrap() {
-					min_mean = Option::Some(ar.mean);
-					min_result = Option::Some(j);
+	pub fn run_benchmarks(&mut self) {
+		// thread strategy:
+		//  * spawn physical cores - 1 threads to perform benchmarking
+		//  * treat as a worker pool
+		//  * sleep between benchmarks
+		// message passing strategy:
+		//  * channel cloned for all threads to send data back to main / coordinator thread
+		//  * thread-specific channels created to send messages from the coordinator to a specific
+		//    thread
+		//  * threads are given their thread ids through message passing on startup
+		//  * when there is no more work to give to a thread, the tx will be dropped aborting the
+		//    thread's rx loop
+		//  * when all threads exit they'll drop their tx eventually ending the coordinator rx loop
+		let (coordinator_tx, coordinator_rx) = mpsc::channel();
+		let mut threads = Vec::new();
+		let mut channels: Vec<Option<mpsc::Sender<MPMessage>>> = Vec::new();
+		for i in 0..*N_WORKERS {
+			// the shadowing here is weird
+			let coordinator_tx = mpsc::Sender::clone(&coordinator_tx);
+			// tx moved into the channels vector
+			// rx is moved into the thread
+			// the cloned coordinator_tx is also moved into the thread
+			let (tx, rx) = mpsc::channel();
+			channels.push(Option::Some(tx));
+			// the thread needs a pointer to the struct instance and I can't pass &self because its
+			// lifetime is not &'static. There's surely a better rustic way to do this but I'm just
+			// going to cast away the lifetime constraint.
+			// this is safe because we know these threads won't live past the end of this method
+			let self_ptr = unsafe { u_extend_lifetime!(self) };
+			threads.push(thread::spawn(move || {
+				// get thread id via rx
+				let id = rx.recv().unwrap().get_id_message();
+				// begin work loop
+				for received in rx {
+					match received.m_type {
+						MType::IdAssignment => {panic!("unexpected IdAssignment message");},
+						MType::WorkAssignment => {
+							let job = received.get_work_message();
+							let result = BenchmarkManager::run_bench(self_ptr.algorithms[job.algorithm_i].0, TEST_SIZES[job.size]);
+							coordinator_tx.send((id, result)).unwrap();
+						},
+						MType::Result => {panic!("unhandled WorkAssignment message");},
+						MType::Done => {
+							break;
+						}
+					}
 				}
-			}
+			}));
+			channels.last().unwrap().as_ref().unwrap().send(MPMessage::new_id_message(i)).unwrap();
 		}
-		if min_result.is_some() {
-			let min_j = min_result.unwrap();
-			results[min_j][i].as_mut().unwrap().is_fastest = true;
-			let min = results[min_j][i].clone().unwrap();
-			for j in 0..algorithms.len() {
-				if results[j][i].is_some() {
-					let ar = results[j][i].as_mut().unwrap();
-					if min.compare(ar) >= ALPHA {
-						ar.is_fastest = true;
+		// drop original coordinator_tx parent to allow detecting when all threads drop their clones
+		drop(coordinator_tx);
+		// setup the test cases
+		// this Vec is O(really big)
+		// this vec is used like a stack - jobs are consumed from the top
+		let mut jobs = Vec::new();
+		for size_i in 0..TEST_SIZES.len() {
+			for (i, a) in self.algorithms.iter().enumerate() {
+				if TEST_SIZES[size_i] <= *LIMIT_TABLE.get(&a.2).unwrap() {
+					for _n in 0..N_TESTS {
+						jobs.push((i, size_i));
 					}
 				}
 			}
 		}
-	}
-	// print a delimited table (helpful for pasting into excel)
-	for cell in header.iter() {
-		print!("{} ", cell);
-	}
-	print!("\n");
-	for (i, a) in algorithms.iter().enumerate() {
-		print!("{}", a.1);
-		for result in results[i].iter() {
-			if result.is_none() {
-				print!(" -");
+		println!("number of jobs: {}", jobs.len());
+		// shuffle jobs using seed
+		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
+		jobs.shuffle(&mut rng);
+		// we have to keep track of every thread's current job so we know how to assign its output
+		// it's a little ugly and non-elegant. the alternative is to include job info in the thread
+		// result return
+		let mut assignments = vec![Option::<(usize, usize)>::None; *N_WORKERS];
+		// kickstart the threads with their first jobs
+		// TODO: threads just start off with requesting?
+		for i in 0..*N_WORKERS {
+			if jobs.len() == 0 {
+				continue;
+			}
+			let job = jobs.pop().unwrap();
+			channels[i].as_ref().unwrap().send(MPMessage::new_work_message(WorkDescriptor {
+				algorithm_i: job.0,
+				size: job.1
+			})).unwrap();
+			assignments[i] = Option::Some(job);
+		}
+		// our final results will be Vec<Vec<Option<BenchmarkResult>>> but as we get the data needed
+		// for these jobs, we have to store in a Vec<Vec<Vec<u64>>>
+		let mut results = vec![vec![Vec::<u64>::with_capacity(N_TESTS); TEST_SIZES.len()]; self.algorithms.len()];
+		// receive loop
+		// goal:
+		//   recieve results from the worker threads
+		//   log
+		//   dispatch new work
+		//   handle teardown
+		for received in coordinator_rx {
+			// log result from worker
+			let (thread_id,   result) = received;
+			let (algorithm_i, size_i) = assignments[thread_id].unwrap();
+			results[algorithm_i][size_i].push(result);
+			if !jobs.is_empty() {
+				// dispatch new work
+				let job = jobs.pop().unwrap();
+				println!("{} {} {}", utils::commafy(jobs.len()), self.algorithms[job.0].1, utils::commafy(TEST_SIZES[job.1]));
+				channels[thread_id].as_ref().unwrap().send(MPMessage::new_work_message(WorkDescriptor {
+					algorithm_i: job.0,
+					size: job.1
+				})).unwrap();
+				assignments[thread_id] = Option::Some(job);
 			} else {
-				let result = result.as_ref().unwrap();
-				let v = result.mean / 1e6;
-				print!(" {:.5}", v);
+				// teardown if there is no work
+				let c = channels[thread_id].take().unwrap();
+				channels[thread_id] = Option::None;
+				drop(c);
+			}
+			// loop will break when all threads have reported with their final results and had their
+			// channels torn down
+		}
+		// join all threads
+		println!("joining");
+		for thread in threads {
+			thread.join().unwrap();
+		}
+		// compute composite results
+		for algorithm_i in 0..self.algorithms.len() {
+			for size_i in 0..TEST_SIZES.len() {
+				// compute stats
+				// We had an issue with a few benchmarks randomly having massive standard deviations every time
+				// we'd run the benchmark just a couple results would have anomalies and there wasn't any
+				// consistency or pattern to which benchmarks would have anomalies.
+				// The reason for the massive standard deviations was due to just a couple (usually just 1)
+				// extraneous results in the results vector (e.g. in a benchmark whose result's mean was
+				//  ~2,200ns, there was an outlier of 112,600ns blowing up the standard deviation calculation).
+				// This filter here uses Tukey's method to filter out outliers.
+				// note results is shadowed twice here
+				let results = &results[algorithm_i][size_i];
+				if results.len() != N_TESTS {
+					println!("---------->> {} {} {}", self.algorithms[algorithm_i].1, utils::commafy(TEST_SIZES[size_i]), results.len());
+				}
+				if results.len() == 0 {
+					self.results_table[algorithm_i][size_i] = Option::None;
+					continue;
+				}
+				let q = statistics::quartiles(&results);
+				let results: Vec<u64> = results.into_iter()
+										.map(|item| *item)
+										.filter(|item| statistics::tukey(*item, &q, OUTLIER_COEFFICIENT))
+										.collect();
+				let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
+				let stdev = statistics::stdev(&results, mean);
+				self.results_table[algorithm_i][size_i] = Option::Some(BenchmarkResult {
+					mean,
+					stdev,
+					count: results.len(),
+					is_fastest: false // field will be used for display
+				});
 			}
 		}
-		print!("\n");
 	}
-	// make pretty table
-	let mut table = Table::new();
-	table.add_row(Row::new(header.iter().map(|x| Cell::new(x)).collect()));
-	for (i, a) in algorithms.iter().enumerate() {
-		let mut row = vec![Cell::new(&a.1)];
-		for result in results[i].iter() {
-			if result.is_none() {
-				row.push(Cell::new("-"));
-			} else {
-				row.push(Cell::new(&format!("{}", result.as_ref().unwrap())));
+	pub fn print(&mut self, filter: fn(&String, &str) -> bool) {
+		// mins
+		for i in 0..TEST_SIZES.len() {
+			let mut min_mean = Option::<f64>::None;
+			let mut min_result = Option::<usize>::None;
+			for j in 0..self.algorithms.len() {
+				if filter(&self.algorithms[j].1, self.algorithms[j].2) {
+					let ar = &self.results_table[j][i];
+					if ar.is_some() {
+						let ar = ar.as_ref().unwrap();
+						if min_mean.is_none() || ar.mean < min_mean.unwrap() {
+							min_mean = Option::Some(ar.mean);
+							min_result = Option::Some(j);
+						}
+					}
+				}
+			}
+			if min_result.is_some() {
+				let min_j = min_result.unwrap();
+				self.results_table[min_j][i].as_mut().unwrap().is_fastest = true;
+				let min = self.results_table[min_j][i].clone().unwrap();
+				for j in 0..self.algorithms.len() {
+					if filter(&self.algorithms[j].1, self.algorithms[j].2) {
+						if self.results_table[j][i].is_some() {
+							let mut ar = self.results_table[j][i].as_mut().unwrap();
+							if min.compare(&ar) >= ALPHA {
+								ar.is_fastest = true;
+							}
+						}
+					}
+				}
 			}
 		}
-		table.add_row(Row::new(row));
+		// make pretty table
+		let mut table = Table::new();
+		table.add_row(Row::new(std::iter::once(String::from(""))
+								.chain(TEST_SIZES
+										.iter()
+										.map(|x| utils::commafy(*x)))
+								.map(|x| Cell::new(&x)).collect()));
+		for (i, a) in self.algorithms.iter().enumerate() {
+			if filter(&a.1, a.2) {
+				let mut row = vec![Cell::new(&a.1)];
+				for result in self.results_table[i].iter() {
+					if result.is_none() {
+						row.push(Cell::new("-"));
+					} else {
+						row.push(Cell::new(&format!("{}", result.as_ref().unwrap())));
+					}
+				}
+				table.add_row(Row::new(row));
+			}
+		}
+		table.printstd();
+		println!("└ Values in ms; 98% confidence interval displayed");
+		// reset mins / maxes
+		for a in &mut self.results_table {
+			for b in a {
+				if b.is_some() {
+					b.as_mut().unwrap().is_fastest = false;
+				}
+			}
+		}
 	}
-	table.printstd();
-	println!("└ Values in ms; 98% confidence interval displayed");
+	pub fn print_table(&mut self) {
+		println!("Totals:");
+		self.print(|_, _| true);
+	}
+	pub fn print_insertion_sorts(&mut self) {
+		println!("Insertion sorts:");
+		self.print(|n, _| n.contains("insertion") || n.contains("selection") || n.contains("cocktail"));
+		println!();
+	}
+	pub fn print_bubble_sorts(&mut self) {
+		println!("Bubble sorts:");
+		self.print(|n, _| n.contains("bubble"));
+		println!();
+	}
+	pub fn print_bubble_sorts_plus(&mut self) {
+		println!("Bubble sorts plus:");
+		self.print(|n, _| n.contains("bubble") || n.contains("cocktail"));
+		println!();
+	}
+	pub fn print_shell_sorts(&mut self) {
+		println!("Shell sorts:");
+		self.print(|n, _| n.contains("shellsort") || n.contains("insertionsort"));
+		println!();
+	}
+	pub fn print_merge_sorts(&mut self) {
+		println!("Merge sorts:");
+		self.print(|n, _| n.contains("mergesort"));
+		println!();
+	}
+	pub fn print_heap_sorts(&mut self) {
+		println!("Heap sorts:");
+		self.print(|n, _| n.contains("heapsort"));
+		println!();
+	}
+	pub fn print_quick_sorts(&mut self) {
+		println!("Quick sorts:");
+		self.print(|n, _| n.contains("quicksort"));
+		println!();
+	}
+}
+
+fn main() {
+	//utils::set_priority();
+	let mut manager = BenchmarkManager::new();
+	manager.run_benchmarks();
+	manager.print_bubble_sorts();
+	manager.print_bubble_sorts_plus();
+	manager.print_insertion_sorts();
+	manager.print_shell_sorts();
+	manager.print_merge_sorts();
+	manager.print_heap_sorts();
+	manager.print_quick_sorts();
+	manager.print_table();
+	return;
 }

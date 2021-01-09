@@ -7,6 +7,18 @@
 	};
 }
 
+// this macro assists with extending the lifetime of an object
+// it is short for extend_lifetime(LifetimeContainer(obj)).0
+pub struct LifetimeContainer<'a, T>(pub &'a T);
+pub unsafe fn extend_lifetime<'b, T>(lc: LifetimeContainer<'b, T>) -> LifetimeContainer<'static, T> {
+	std::mem::transmute::<LifetimeContainer<'b, T>, LifetimeContainer<'static, T>>(lc)
+}
+#[macro_export] macro_rules! u_extend_lifetime {
+	($f:expr) => {
+		utils::extend_lifetime(utils::LifetimeContainer($f)).0
+	};
+}
+
 #[cfg(target_family = "unix")]
 #[cfg(not(tarpaulin_include))]
 pub fn set_priority() {
@@ -31,6 +43,7 @@ pub fn set_priority() {
 }
 
 // returns number with comma separators (i.e. 1000000 -> "1,000,000")
+// note: this method fails for num == 0 - it prints "x". I'm leaving it for now.
 pub fn commafy(mut num: usize) -> String {
 	let log = (num as f64).log10() as usize;
 	let len = log + log / 3 + 1;
