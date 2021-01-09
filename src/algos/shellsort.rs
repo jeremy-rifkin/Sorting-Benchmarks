@@ -100,5 +100,36 @@ pub fn shellsort_ciura<T: Ord>(slice: &mut [T]) {
 		701, 301, 132, 57,
 		23, 10, 4, 1
 	];
-	shell_sequence(slice, &DEFAULT_SEQUENCE[..]);
+	shell_sequence(slice, &DEFAULT_SEQUENCE);
+}
+
+fn insertion_gap_sequence<T: Ord>(array: &mut [T], gap_sequence: &[usize]) {
+	let mut j = 0;
+	for mut i in gap_sequence[j]..array.len() {
+		while j < gap_sequence.len() {
+			while i >= gap_sequence[j] && array[i - gap_sequence[j]] > array[i] {
+				array.swap(i, i - gap_sequence[j]);
+				i -= gap_sequence[j];
+			}
+			j += 1;
+		}
+		j = 0;
+	}
+}
+
+pub fn shell_advanced_sequence<T: Ord>(slice: &mut [T], gap_sequence: &[usize]) {
+	for i in 0..gap_sequence.len() {
+		if gap_sequence[i] < slice.len() {
+			insertion_gap_sequence(slice, &gap_sequence[i..]);
+		}
+	}
+}
+
+pub fn shellsort_advanced_ciura<T: Ord>(slice: &mut [T]) {
+	const DEFAULT_SEQUENCE: [usize; 12] = [
+		20622, 8855, 3802, 1633,
+		701, 301, 132, 57,
+		23, 10, 4, 1
+	];
+	shell_advanced_sequence(slice, &DEFAULT_SEQUENCE);
 }
