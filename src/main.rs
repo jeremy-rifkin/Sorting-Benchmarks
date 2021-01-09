@@ -332,7 +332,7 @@ impl BenchmarkManager {
 		let mut jobs = Vec::new();
 		for size_i in 0..TEST_SIZES.len() {
 			for (i, a) in self.algorithms.iter().enumerate() {
-				if TEST_SIZES[size_i] <= *LIMIT_TABLE.get(&a.2).unwrap() {
+				if TEST_SIZES[size_i] <= *LIMIT_TABLE.get(&a.2).unwrap_or(&usize::MAX) {
 					for _n in 0..N_TESTS {
 						jobs.push((i, size_i));
 					}
