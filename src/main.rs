@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use num_cpus;
 use prettytable::*;
 use rand::rngs::SmallRng;
-use rand::{Rng, RngCore, SeedableRng, seq::SliceRandom};
+use rand::{RngCore, SeedableRng, seq::SliceRandom};
 use regex::Regex;
 
 mod algos;
@@ -78,6 +78,7 @@ mod tests;
 // algorithms compare to each other on real hardware.
 //
 // Note: This driver is not done. There are still some implementation details left to handle.
+// Note: The benchmarking takes a while to run, but it's thorough
 //
 
 const MIN_TEST_SIZE: usize = 10;
@@ -148,8 +149,8 @@ impl BenchmarkResult {
 			return 0.0; // I guess?
 		}
 		let p = statistics::two_sample_t_test(self.mean, other.mean,
-		                                      self.stdev, other.stdev,
-		                                      self.count, other.count, true);
+											  self.stdev, other.stdev,
+											  self.count, other.count, true);
 		//println!("{}", p);
 		assert!(!p.is_nan(), "problematic value: {}", p);
 		assert!(!p.is_infinite(), "problematic value: {}", p);
@@ -177,7 +178,8 @@ enum MType {
 #[derive(Clone, Copy)]
 struct WorkDescriptor {
 	algorithm_i: usize,
-	size: usize
+	size: usize,
+	test_i: usize
 }
 
 union MContents {
@@ -262,10 +264,25 @@ impl BenchmarkManager {
 			results_table
 		}
 	}
-	pub fn run_bench(sort: fn(&mut [i32]), size: usize) -> u64 {
+	fn seedgen(n: usize) -> u64 {
+		let n = n as u64;
+		// in the old benchmark code we'd use an rng source with the fixed seed to generate N_TESTS
+		// test vectors
+		// this would give us N_TESTS unique (probably) test vectors, but the values were
+		// predictable and constant across all tests
+		// in order to get unique but consistent test vectors with this situation, we use a basic
+		// method to create a seed based off of the current test we're on
+		// could just do RNG_SEED + n but why do that when we can do it complicated
+		let mut seed = RNG_SEED;
+		for i in 0..n {
+			seed = (seed.rotate_left(1) + n) ^ i ^ RNG_SEED;
+		}
+		seed
+	}
+	pub fn run_bench(sort: fn(&mut [i32]), size: usize, test_i: usize) -> u64 {
 		// setup tests
 		let mut test_vector: Vec<i32> = vec![0; size];
-		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
+		let mut rng = SmallRng::seed_from_u64(BenchmarkManager::seedgen(test_i));
 		for i in 0..size {
 			test_vector[i] = rng.next_u32() as i32;
 		}
@@ -309,14 +326,16 @@ impl BenchmarkManager {
 				// get thread id via rx
 				let id = rx.recv().unwrap().get_id_message();
 				// request higher thread priority
-				utils::set_thread_priority_max();
+				// TODO: this actually isn't making much difference...
+				//utils::set_thread_priority_max();
 				// begin work loop
 				for received in rx {
 					if received.m_type == MType::WorkAssignment {
 						let job = received.get_work_message();
 						let result = BenchmarkManager::run_bench(
 							self_ptr.algorithms[job.algorithm_i].0,
-							TEST_SIZES[job.size]
+							TEST_SIZES[job.size],
+							job.test_i
 						);
 						coordinator_tx.send((id, result)).unwrap();
 					} else {
@@ -335,8 +354,8 @@ impl BenchmarkManager {
 		for size_i in 0..TEST_SIZES.len() {
 			for (i, a) in self.algorithms.iter().enumerate() {
 				if TEST_SIZES[size_i] <= *LIMIT_TABLE.get(&a.2).unwrap_or(&usize::MAX) {
-					for _n in 0..N_TESTS {
-						jobs.push((i, size_i));
+					for n in 0..N_TESTS {
+						jobs.push((i, size_i, n));
 					}
 				}
 			}
@@ -348,7 +367,7 @@ impl BenchmarkManager {
 		// we have to keep track of every thread's current job so we know how to assign its output
 		// it's a little ugly and non-elegant. the alternative is to include job info in the thread
 		// result return
-		let mut assignments = vec![Option::<(usize, usize)>::None; *N_WORKERS];
+		let mut assignments = vec![Option::<(usize, usize, usize)>::None; *N_WORKERS];
 		// kickstart the threads with their first jobs
 		// TODO: threads just start off with requesting?
 		for i in 0..*N_WORKERS {
@@ -358,7 +377,8 @@ impl BenchmarkManager {
 			let job = jobs.pop().unwrap();
 			channels[i].as_ref().unwrap().send(MPMessage::new_work_message(WorkDescriptor {
 				algorithm_i: job.0,
-				size: job.1
+				size: job.1,
+				test_i: job.2
 			})).unwrap();
 			assignments[i] = Option::Some(job);
 		}
@@ -375,8 +395,8 @@ impl BenchmarkManager {
 		//   handle teardown
 		for received in coordinator_rx {
 			// log result from worker
-			let (thread_id,   result) = received;
-			let (algorithm_i, size_i) = assignments[thread_id].unwrap();
+			let (thread_id,   result   ) = received;
+			let (algorithm_i, size_i, _) = assignments[thread_id].unwrap();
 			results[algorithm_i][size_i].push(result);
 			if !jobs.is_empty() {
 				// dispatch new work
@@ -387,9 +407,10 @@ impl BenchmarkManager {
 				channels[thread_id].as_ref()
 								   .unwrap()
 								   .send(MPMessage::new_work_message(WorkDescriptor {
-				                       algorithm_i: job.0,
-				                       size: job.1
-				                   })).unwrap();
+									   algorithm_i: job.0,
+									   size: job.1,
+									   test_i: job.2
+								   })).unwrap();
 				assignments[thread_id] = Option::Some(job);
 			} else {
 				// teardown if there is no work
@@ -507,60 +528,63 @@ impl BenchmarkManager {
 			}
 		}
 	}
-	pub fn print_table(&mut self) {
-		println!("Totals:");
-		self.print(|_, _| true);
-	}
-	pub fn print_insertion_sorts(&mut self) {
-		println!("Insertion sorts:");
-		self.print(|n, _| n.contains("insertion")
-						|| n.contains("selection")
-						|| n.contains("cocktail"));
-		println!();
-	}
-	pub fn print_bubble_sorts(&mut self) {
-		println!("Bubble sorts:");
-		self.print(|n, _| n.contains("bubble"));
-		println!();
-	}
-	pub fn print_bubble_sorts_plus(&mut self) {
-		println!("Bubble sorts plus:");
-		self.print(|n, _| n.contains("bubble") || n.contains("cocktail"));
-		println!();
-	}
-	pub fn print_shell_sorts(&mut self) {
-		println!("Shell sorts:");
-		self.print(|n, _| n.contains("shellsort") || n.contains("insertionsort"));
-		println!();
-	}
-	pub fn print_merge_sorts(&mut self) {
-		println!("Merge sorts:");
-		self.print(|n, _| n.contains("mergesort"));
-		println!();
-	}
-	pub fn print_heap_sorts(&mut self) {
-		println!("Heap sorts:");
-		self.print(|n, _| n.contains("heapsort"));
-		println!();
-	}
-	pub fn print_quick_sorts(&mut self) {
-		println!("Quick sorts:");
-		self.print(|n, _| n.contains("quicksort"));
-		println!();
+}
+
+#[cfg(test)]
+mod test {
+	#[test]
+	fn test_seedgen() {
+		use std::collections::HashSet;
+		use super::*;
+		// This test ensures that seedgen properly generates unique seeds
+		let mut set = HashSet::new();
+		for n in 0..N_TESTS {
+			assert!(set.insert(BenchmarkManager::seedgen(n)));
+		}
+		println!("{:?}", set);
+		assert!(set.len() == N_TESTS);
 	}
 }
 
 fn main() {
-	//utils::set_priority();
 	let mut manager = BenchmarkManager::new();
 	manager.run_benchmarks();
-	manager.print_bubble_sorts();
-	manager.print_bubble_sorts_plus();
-	manager.print_insertion_sorts();
-	manager.print_shell_sorts();
-	manager.print_merge_sorts();
-	manager.print_heap_sorts();
-	manager.print_quick_sorts();
-	manager.print_table();
+
+	println!("Bubble sorts:");
+	manager.print(|n, _| n.contains("bubble"));
+	println!();
+
+	println!("Bubble sorts plus:");
+	manager.print(|n, _| n.contains("bubble") || n.contains("cocktail"));
+	println!();
+
+	println!("Insertion sorts:");
+	manager.print(|n, _| n.contains("insertion")
+						|| n.contains("selection")
+						|| n.contains("cocktail"));
+	println!();
+
+	println!("Shell sorts:");
+	manager.print(|n, _| n.contains("shellsort") || n.contains("insertionsort"));
+	println!();
+
+	println!("Merge sorts:");
+	manager.print(|n, _| n.contains("mergesort"));
+	println!();
+
+	println!("Heap sorts:");
+	manager.print(|n, _| n.contains("heapsort"));
+	println!();
+
+	println!("Quick sorts:");
+	manager.print(|n, _| n.contains("quicksort"));
+	println!();
+
+	println!("Radix sort:");
+	manager.print(|n, _| n.contains("radix") || n.contains("rustsort"));
+	println!();
+
+	println!("Totals:");
+	manager.print(|n, _| !n.contains("radix"));
 	return;
 }
