@@ -308,6 +308,8 @@ impl BenchmarkManager {
 			threads.push(thread::spawn(move || {
 				// get thread id via rx
 				let id = rx.recv().unwrap().get_id_message();
+				// request higher thread priority
+				utils::set_thread_priority_max();
 				// begin work loop
 				for received in rx {
 					if received.m_type == MType::WorkAssignment {

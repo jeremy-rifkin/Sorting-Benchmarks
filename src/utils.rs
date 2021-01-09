@@ -21,7 +21,7 @@ pub unsafe fn extend_lifetime<'b, T>(lc: LifetimeContainer<'b, T>) -> LifetimeCo
 
 #[cfg(target_family = "unix")]
 #[cfg(not(tarpaulin_include))]
-pub fn set_priority() {
+pub fn set_thread_priority_max() {
 	thread_priority::unix::set_current_thread_priority(thread_priority::ThreadPriority::Max).unwrap();
 	// TODO: investigate permission requirements of reltime static priorities
 	// https://man7.org/linux/man-pages/man3/pthread_setschedparam.3.html #NOTES
@@ -37,9 +37,8 @@ pub fn set_priority() {
 
 #[cfg(target_family = "windows")]
 #[cfg(not(tarpaulin_include))]
-pub fn set_priority() {
-	winproc::Process::current().set_priority(winproc::PriorityClass::Realtime).unwrap();
-	//winproc::Thread::current().set_priority(winproc::PriorityLevel::TimeCritical).unwrap();
+pub fn set_thread_priority_max() {
+	winproc::Thread::current().set_priority(winproc::PriorityLevel::TimeCritical).unwrap();
 }
 
 // returns number with comma separators (i.e. 1000000 -> "1,000,000")
