@@ -22,6 +22,7 @@ pub unsafe fn extend_lifetime<'b, T>(lc: LifetimeContainer<'b, T>) -> LifetimeCo
 
 #[cfg(target_family = "unix")]
 #[cfg(not(tarpaulin_include))]
+#[allow(dead_code)]
 pub fn set_thread_priority_max() {
 	thread_priority::unix::set_current_thread_priority(thread_priority::ThreadPriority::Max).unwrap();
 	// TODO: investigate permission requirements of reltime static priorities
@@ -38,6 +39,7 @@ pub fn set_thread_priority_max() {
 
 #[cfg(target_family = "windows")]
 #[cfg(not(tarpaulin_include))]
+#[allow(dead_code)]
 pub fn set_thread_priority_max() {
 	winproc::Thread::current().set_priority(winproc::PriorityLevel::TimeCritical).unwrap();
 }
