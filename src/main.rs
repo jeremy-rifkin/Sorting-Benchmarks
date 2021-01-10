@@ -368,6 +368,7 @@ impl BenchmarkManager {
 			}
 		}
 	}
+	#[allow(dead_code)] // TODO
 	pub fn run_benchmarks(&mut self) {
 		// thread strategy:
 		//  * spawn physical cores - 1 threads to perform benchmarking
@@ -488,6 +489,43 @@ impl BenchmarkManager {
 		println!("joining");
 		for thread in threads {
 			thread.join().unwrap();
+		}
+		// compute final results
+		self.compute_results(results);
+	}
+	#[allow(dead_code)] // TODO
+	pub fn run_benchmarks_single_threaded(&mut self) {
+		// for systems like the raspberry pi zero
+		// TODO: this actually isn't making much difference...
+		//utils::set_thread_priority_max();
+		// setup the test cases
+		// the size of this Vec is O(really big)
+		// this vec is used like a stack - jobs are consumed from the top
+		let mut jobs = self.generate_benchmark_jobs();
+		println!("number of jobs: {}", jobs.len());
+		// shuffle jobs using seed
+		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
+		jobs.shuffle(&mut rng);
+		// our final results will be Vec<Vec<Option<BenchmarkResult>>> but as we get the data needed
+		// for these jobs, we have to store in a Vec<Vec<Vec<u64>>>
+		let mut results = vec![
+							   vec![Vec::<u64>::with_capacity(N_TESTS); TEST_SIZES.len()];
+						  self.algorithms.len()];
+		// keep track of time spent on each cell
+		// could just sum results, but may as well keep running sums in this table
+		let mut time_table = vec![vec![0u64; TEST_SIZES.len()]; self.algorithms.len()];
+		// job loop
+		while let Option::Some(job) = self.get_next_job(&time_table, &mut jobs) {
+			println!("{} {} {}", utils::commafy(jobs.len()),
+								 self.algorithms[job.0].1,
+								 utils::commafy(TEST_SIZES[job.1]));
+			let result = BenchmarkManager::run_bench(
+				self.algorithms[job.0].0,
+				TEST_SIZES[job.1],
+				job.2
+			);
+			results[job.0][job.1].push(result);
+			time_table[job.0][job.1] += result;
 		}
 		// compute final results
 		self.compute_results(results);
