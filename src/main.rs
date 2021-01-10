@@ -77,7 +77,6 @@ mod tests;
 // to rust's builtin, but it isn't strictly necessary for our program: we just want to look at how
 // algorithms compare to each other on real hardware.
 //
-// Note: This driver is not done. There are still some implementation details left to handle.
 // Note: The benchmarking takes a while to run, but it's thorough
 //
 
@@ -273,6 +272,10 @@ impl BenchmarkManager {
 		// in order to get unique but consistent test vectors with this situation, we use a basic
 		// method to create a seed based off of the current test we're on
 		// could just do RNG_SEED + n but why do that when we can do it complicated
+		// note: previously looked into creating a rng with RNG_SEED for every cell in the table
+		// and passing those to threads with the various jobs, but, that would be complicated as far
+		// as lifetimes go and would introduce concurrency problems
+		// this way we don't have to avoid scheduling two sub-runs of (alg, size) at once
 		let mut seed = RNG_SEED;
 		for i in 0..n {
 			seed = (seed.rotate_left(1) + n) ^ i ^ RNG_SEED;
@@ -387,6 +390,22 @@ impl BenchmarkManager {
 		let mut results = vec![
 							   vec![Vec::<u64>::with_capacity(N_TESTS); TEST_SIZES.len()];
 						  self.algorithms.len()];
+		// keep track of time spent on each cell
+		// could just sum results, but may as well keep running sums in this table
+		let mut time_table = vec![vec![0u64; TEST_SIZES.len()]; self.algorithms.len()];
+		// TODO: need to break this method up - it's too long
+		// this lambda will get the next valid job, or None if there aren't any jobs to return
+		let get_next_job = |time_table: &Vec<Vec<u64>>, jobs: &mut Vec<(usize, usize, usize)>| {
+			while !jobs.is_empty() {
+				let job = jobs.pop().unwrap();
+				if time_table[job.0][job.1] >= RUNTIME_LIMIT {
+					// discard job and continue
+				} else {
+					return Option::Some(job);
+				}
+			}
+			return Option::None;
+		};
 		// receive loop
 		// goal:
 		//   recieve results from the worker threads
@@ -398,9 +417,9 @@ impl BenchmarkManager {
 			let (thread_id,   result   ) = received;
 			let (algorithm_i, size_i, _) = assignments[thread_id].unwrap();
 			results[algorithm_i][size_i].push(result);
-			if !jobs.is_empty() {
-				// dispatch new work
-				let job = jobs.pop().unwrap();
+			time_table[algorithm_i][size_i] += result;
+			// dispatch new work or teardown
+			if let Option::Some(job) = get_next_job(&time_table, &mut jobs) {
 				println!("{} {} {}", utils::commafy(jobs.len()),
 									 self.algorithms[job.0].1,
 									 utils::commafy(TEST_SIZES[job.1]));
@@ -413,7 +432,6 @@ impl BenchmarkManager {
 								   })).unwrap();
 				assignments[thread_id] = Option::Some(job);
 			} else {
-				// teardown if there is no work
 				let c = channels[thread_id].take().unwrap();
 				channels[thread_id] = Option::None;
 				drop(c);
@@ -444,7 +462,9 @@ impl BenchmarkManager {
 													  utils::commafy(TEST_SIZES[size_i]),
 													  results.len());
 				}
-				if results.len() == 0 {
+				if results.len() <= MIN_ACCEPTABLE_TESTS {
+					// either not enough tests were performed within the runtime limit or no tests
+					// were performed because of complexity limits
 					self.results_table[algorithm_i][size_i] = Option::None;
 					continue;
 				}
