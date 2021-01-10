@@ -254,7 +254,8 @@ impl BenchmarkManager {
 			sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
 			sfn!(algos::radixsort,                       "O(n)"),
 			sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
-			sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)")
+			sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)"),
+			sfn!(algos::cpp_std_sort,                    "O(n log n)")
 		];
 		// TODO: single vec serving as 2D array? algorithms[i][j] = results[i * len + j]
 		let results_table = vec![vec![Option::None; TEST_SIZES.len()]; algorithms.len()];

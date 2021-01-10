@@ -210,3 +210,13 @@ fn test_weird() {
 fn test_radixsort() {
 	test_sorting_algorithm(algos::radixsort);
 }
+
+#[test]
+fn test_cpp_std_sort() {
+	test_sorting_algorithm(algos::cpp_std_sort);
+}
+
+//#[test]
+//fn test_cpp_std_stable_sort() {
+//	test_sorting_algorithm(algos::cpp_std_stable_sort);
+//}
