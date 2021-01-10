@@ -283,19 +283,90 @@ impl BenchmarkManager {
 		}
 		seed
 	}
-	pub fn run_bench(sort: fn(&mut [i32]), size: usize, test_i: usize) -> u64 {
-		// setup tests
+	fn run_bench(sort: fn(&mut [i32]), size: usize, test_i: usize) -> u64 {
+		// setup the test itself based off seed for this particular run
 		let mut test_vector: Vec<i32> = vec![0; size];
 		let mut rng = SmallRng::seed_from_u64(BenchmarkManager::seedgen(test_i));
 		for i in 0..size {
 			test_vector[i] = rng.next_u32() as i32;
 		}
+		// sleep briefly - this is an attempt to produce more constant results
 		thread::sleep(Duration::from_millis(10));
+		// test body:
 		let start = Instant::now();
 		sort(&mut test_vector);
 		let r = start.elapsed().as_nanos() as u64;
+		// this is covered in test cases but just to be sure...
 		utils::verify_sorted(&test_vector);
 		r
+	}
+	fn generate_benchmark_jobs(&self) -> Vec<(usize, usize, usize)> {
+		let mut jobs = Vec::new();
+		for size_i in 0..TEST_SIZES.len() {
+			for (i, a) in self.algorithms.iter().enumerate() {
+				if TEST_SIZES[size_i] <= *LIMIT_TABLE.get(&a.2).unwrap_or(&usize::MAX) {
+					for n in 0..N_TESTS {
+						jobs.push((i, size_i, n));
+					}
+				}
+			}
+		}
+		jobs
+	}
+	fn get_next_job(&self, time_table: &Vec<Vec<u64>>, jobs: &mut Vec<(usize, usize, usize)>)
+		-> Option<(usize, usize, usize)> {
+		// fetch a new job while discarding any jobs whose predecessors have exceeded the runtime
+		// limit
+		while !jobs.is_empty() {
+			let job = jobs.pop().unwrap();
+			if time_table[job.0][job.1] >= RUNTIME_LIMIT {
+				// discard job and continue
+			} else {
+				return Option::Some(job);
+			}
+		}
+		return Option::None;
+	}
+	fn compute_results(&mut self, results: Vec<Vec<Vec<u64>>>) {
+		for algorithm_i in 0..self.algorithms.len() {
+			for size_i in 0..TEST_SIZES.len() {
+				// compute stats
+				// We had an issue with a few benchmarks randomly having massive standard deviations
+				// every time we'd run the benchmark just a couple results would have anomalies and
+				// there wasn't any consistency or pattern to which benchmarks would have anomalies.
+				// The reason for the massive standard deviations was due to just a couple (usually
+				// just 1) extraneous results in the results vector (e.g. in a benchmark whose
+				// result's mean was ~2,200ns, there was an outlier of 112,600ns blowing up the
+				// standard deviation calculation). Here we use Tukey's method to discard outliers.
+				// note results is shadowed twice here
+				let results = &results[algorithm_i][size_i];
+				if results.len() != N_TESTS {
+					println!("---------->> {} {} {}", self.algorithms[algorithm_i].1,
+													  utils::commafy(TEST_SIZES[size_i]),
+													  results.len());
+				}
+				if results.len() <= MIN_ACCEPTABLE_TESTS {
+					// either not enough tests were performed within the runtime limit or no tests
+					// were performed because of complexity limits
+					self.results_table[algorithm_i][size_i] = Option::None;
+					continue;
+				}
+				let q = statistics::quartiles(&results);
+				let results: Vec<u64> = results.into_iter()
+										.map(|item| *item)
+										.filter(|item| statistics::tukey(*item, &q,
+																			OUTLIER_COEFFICIENT))
+										.collect();
+				let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
+				let stdev = statistics::stdev(&results, mean);
+				self.results_table[algorithm_i][size_i] = Option::Some(BenchmarkResult {
+					mean,
+					stdev,
+					count: results.len(),
+					is_fastest: false // field will be used in display code
+				});
+			}
+		}
 	}
 	pub fn run_benchmarks(&mut self) {
 		// thread strategy:
@@ -332,6 +403,8 @@ impl BenchmarkManager {
 				// request higher thread priority
 				// TODO: this actually isn't making much difference...
 				//utils::set_thread_priority_max();
+				// kickstart the process by requesting work
+				coordinator_tx.send((id, u64::MAX)).unwrap();
 				// begin work loop
 				for received in rx {
 					if received.m_type == MType::WorkAssignment {
@@ -352,18 +425,9 @@ impl BenchmarkManager {
 		// drop original coordinator_tx parent to allow detecting when all threads drop their clones
 		drop(coordinator_tx);
 		// setup the test cases
-		// this Vec is O(really big)
+		// the size of this Vec is O(really big)
 		// this vec is used like a stack - jobs are consumed from the top
-		let mut jobs = Vec::new();
-		for size_i in 0..TEST_SIZES.len() {
-			for (i, a) in self.algorithms.iter().enumerate() {
-				if TEST_SIZES[size_i] <= *LIMIT_TABLE.get(&a.2).unwrap_or(&usize::MAX) {
-					for n in 0..N_TESTS {
-						jobs.push((i, size_i, n));
-					}
-				}
-			}
-		}
+		let mut jobs = self.generate_benchmark_jobs();
 		println!("number of jobs: {}", jobs.len());
 		// shuffle jobs using seed
 		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
@@ -372,20 +436,6 @@ impl BenchmarkManager {
 		// it's a little ugly and non-elegant. the alternative is to include job info in the thread
 		// result return
 		let mut assignments = vec![Option::<(usize, usize, usize)>::None; *N_WORKERS];
-		// kickstart the threads with their first jobs
-		// TODO: threads just start off with requesting?
-		for i in 0..*N_WORKERS {
-			if jobs.len() == 0 {
-				continue;
-			}
-			let job = jobs.pop().unwrap();
-			channels[i].as_ref().unwrap().send(MPMessage::new_work_message(WorkDescriptor {
-				algorithm_i: job.0,
-				size: job.1,
-				test_i: job.2
-			})).unwrap();
-			assignments[i] = Option::Some(job);
-		}
 		// our final results will be Vec<Vec<Option<BenchmarkResult>>> but as we get the data needed
 		// for these jobs, we have to store in a Vec<Vec<Vec<u64>>>
 		let mut results = vec![
@@ -394,33 +444,28 @@ impl BenchmarkManager {
 		// keep track of time spent on each cell
 		// could just sum results, but may as well keep running sums in this table
 		let mut time_table = vec![vec![0u64; TEST_SIZES.len()]; self.algorithms.len()];
-		// TODO: need to break this method up - it's too long
-		// this lambda will get the next valid job, or None if there aren't any jobs to return
-		let get_next_job = |time_table: &Vec<Vec<u64>>, jobs: &mut Vec<(usize, usize, usize)>| {
-			while !jobs.is_empty() {
-				let job = jobs.pop().unwrap();
-				if time_table[job.0][job.1] >= RUNTIME_LIMIT {
-					// discard job and continue
-				} else {
-					return Option::Some(job);
-				}
-			}
-			return Option::None;
-		};
 		// receive loop
 		// goal:
 		//   recieve results from the worker threads
 		//   log
 		//   dispatch new work
 		//   handle teardown
+		// loop will break when all threads have reported with their final results and had their
+		// channels torn down
 		for received in coordinator_rx {
-			// log result from worker
-			let (thread_id,   result   ) = received;
-			let (algorithm_i, size_i, _) = assignments[thread_id].unwrap();
-			results[algorithm_i][size_i].push(result);
-			time_table[algorithm_i][size_i] += result;
+			let (thread_id, result) = received;
+			if result == u64::MAX /* && assignments[thread_id].is_none() */ {
+				// handle initial work request / kickstart
+				assert!(assignments[thread_id].is_none());
+				// no action needed - just proceed to work dispatch
+			} else {
+				// else log result from worker
+				let (algorithm_i, size_i, _) = assignments[thread_id].unwrap();
+				results[algorithm_i][size_i].push(result);
+				time_table[algorithm_i][size_i] += result;
+			}
 			// dispatch new work or teardown
-			if let Option::Some(job) = get_next_job(&time_table, &mut jobs) {
+			if let Option::Some(job) = self.get_next_job(&time_table, &mut jobs) {
 				println!("{} {} {}", utils::commafy(jobs.len()),
 									 self.algorithms[job.0].1,
 									 utils::commafy(TEST_SIZES[job.1]));
@@ -436,54 +481,16 @@ impl BenchmarkManager {
 				let c = channels[thread_id].take().unwrap();
 				channels[thread_id] = Option::None;
 				drop(c);
+				// could set thread's assignment to none but it doesn't matter
 			}
-			// loop will break when all threads have reported with their final results and had their
-			// channels torn down
 		}
 		// join all threads
 		println!("joining");
 		for thread in threads {
 			thread.join().unwrap();
 		}
-		// compute composite results
-		for algorithm_i in 0..self.algorithms.len() {
-			for size_i in 0..TEST_SIZES.len() {
-				// compute stats
-				// We had an issue with a few benchmarks randomly having massive standard deviations
-				// every time we'd run the benchmark just a couple results would have anomalies and
-				// there wasn't any consistency or pattern to which benchmarks would have anomalies.
-				// The reason for the massive standard deviations was due to just a couple (usually
-				// just 1) extraneous results in the results vector (e.g. in a benchmark whose
-				// result's mean was ~2,200ns, there was an outlier of 112,600ns blowing up the
-				// standard deviation calculation). Here we use Tukey's method to discard outliers.
-				// note results is shadowed twice here
-				let results = &results[algorithm_i][size_i];
-				if results.len() != N_TESTS {
-					println!("---------->> {} {} {}", self.algorithms[algorithm_i].1,
-													  utils::commafy(TEST_SIZES[size_i]),
-													  results.len());
-				}
-				if results.len() <= MIN_ACCEPTABLE_TESTS {
-					// either not enough tests were performed within the runtime limit or no tests
-					// were performed because of complexity limits
-					self.results_table[algorithm_i][size_i] = Option::None;
-					continue;
-				}
-				let q = statistics::quartiles(&results);
-				let results: Vec<u64> = results.into_iter()
-										.map(|item| *item)
-										.filter(|item| statistics::tukey(*item, &q, OUTLIER_COEFFICIENT))
-										.collect();
-				let mean = results.iter().sum::<u64>() as f64 / results.len() as f64;
-				let stdev = statistics::stdev(&results, mean);
-				self.results_table[algorithm_i][size_i] = Option::Some(BenchmarkResult {
-					mean,
-					stdev,
-					count: results.len(),
-					is_fastest: false // field will be used for display
-				});
-			}
-		}
+		// compute final results
+		self.compute_results(results);
 	}
 	pub fn print(&mut self, filter: fn(&String, &str) -> bool) {
 		// mins
