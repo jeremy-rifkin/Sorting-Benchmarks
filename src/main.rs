@@ -263,6 +263,7 @@ impl BenchmarkManager {
 			sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
 			sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
 			sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
+			sfn!(algos::shellsort_advanced_ciura::<i32>, "O(n^(4/3))"),
 			sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 			sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
 			sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
