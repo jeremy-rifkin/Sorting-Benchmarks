@@ -6,10 +6,18 @@ else
 	TARGET = $(OBJECT_DIR)/libinsertionsort.a
 endif
 
-CC = gcc
-CCFLAGS = -m64 -Ofast -march=native -funroll-loops # TODO: -flto
-CPP = g++
-CPPFLAGS = $(CCFLAGS)
+LBITS := $(getconf LONG_BIT)
+ifeq ($(LBITS),64)
+	CC = gcc
+	CCFLAGS = -m64 -Ofast -march=native -funroll-loops # -flto
+	CPP = g++
+	CPPFLAGS = $(CCFLAGS)
+else
+	CC = gcc
+	CCFLAGS = -Ofast -march=native -funroll-loops # -flto
+	CPP = g++
+	CPPFLAGS = $(CCFLAGS)
+endif
 
 SRCS = $(shell find $(SRC_DIRS) -name '*.cpp' -or -name '*.c')
 OBJS = $(SRCS:%=$(OBJECT_DIR)/%.o)

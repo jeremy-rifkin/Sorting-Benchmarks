@@ -11,11 +11,21 @@ build = "src/build.rs"
 prettytable-rs = "0.8.0"
 rand = {version = "0.8.0", features = ["small_rng"]}
 regex = "0.2"
-winproc = "0.6.4"
-thread-priority = "0.2.1"
 lazy_static = "1.4.0"
 libc = "0.2.81"
 num_cpus = "1.13.0"
+
+[target."cfg(unix)".dependencies]
+thread-priority = "0.2.1"
+
+[target."cfg(windows)".dependencies]
+winproc = "0.6.4"
+
+[target."cfg(unix)".build-dependencies]
+procfs = "0.9.1"
+
+#[target."cfg(windows)".build-dependencies]
+#cpuid = "0.1.1"
 
 [profile.release]
 lto=true

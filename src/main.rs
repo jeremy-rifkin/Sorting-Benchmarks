@@ -81,7 +81,10 @@ mod tests;
 //
 
 const MIN_TEST_SIZE: usize = 10;
+#[cfg(not(raspberry_pi))]
 const MAX_TEST_SIZE: usize = 1_000_000;
+#[cfg(raspberry_pi)]
+const MAX_TEST_SIZE: usize = 100_000;
 const N_TESTS: usize = 200;
 const ALPHA: f64 = 0.001;
 
@@ -368,7 +371,6 @@ impl BenchmarkManager {
 			}
 		}
 	}
-	#[allow(dead_code)] // TODO
 	pub fn run_benchmarks(&mut self) {
 		// thread strategy:
 		//  * spawn physical cores - 1 threads to perform benchmarking
@@ -429,7 +431,10 @@ impl BenchmarkManager {
 		// the size of this Vec is O(really big)
 		// this vec is used like a stack - jobs are consumed from the top
 		let mut jobs = self.generate_benchmark_jobs();
-		println!("number of jobs: {}", jobs.len());
+		println!("executing of jobs: {} on {} threads with max size = {}",
+			utils::commafy(jobs.len()),
+			*N_WORKERS,
+			utils::commafy(MAX_TEST_SIZE));
 		// shuffle jobs using seed
 		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
 		jobs.shuffle(&mut rng);
@@ -493,7 +498,6 @@ impl BenchmarkManager {
 		// compute final results
 		self.compute_results(results);
 	}
-	#[allow(dead_code)] // TODO
 	pub fn run_benchmarks_single_threaded(&mut self) {
 		// for systems like the raspberry pi zero
 		// TODO: this actually isn't making much difference...
@@ -502,7 +506,9 @@ impl BenchmarkManager {
 		// the size of this Vec is O(really big)
 		// this vec is used like a stack - jobs are consumed from the top
 		let mut jobs = self.generate_benchmark_jobs();
-		println!("number of jobs: {}", jobs.len());
+		println!("executing of jobs: {} on single-threaded with max size = {}",
+			utils::commafy(jobs.len()),
+			utils::commafy(MAX_TEST_SIZE));
 		// shuffle jobs using seed
 		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
 		jobs.shuffle(&mut rng);
@@ -614,7 +620,11 @@ mod test {
 
 fn main() {
 	let mut manager = BenchmarkManager::new();
-	manager.run_benchmarks();
+	if num_cpus::get_physical() <= 2 {
+		manager.run_benchmarks_single_threaded();
+	} else {
+		manager.run_benchmarks();
+	}
 
 	println!("Bubble sorts:");
 	manager.print(|n, _| n.contains("bubble"));
