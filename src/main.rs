@@ -87,6 +87,7 @@ const MAX_TEST_SIZE: usize = 1_000_000;
 const MAX_TEST_SIZE: usize = 100_000;
 const N_TESTS: usize = 200;
 const ALPHA: f64 = 0.001;
+const DIFF_THRESHOLD: f64 = 0.05;
 
 const RNG_SEED: u64 = 2222;
 const RUNTIME_LIMIT: u64 = 10e9 as u64;
@@ -130,6 +131,7 @@ struct BenchmarkResult {
 	mean: f64,
 	stdev: f64,
 	count: usize,
+	is_stat_fastest: bool,
 	is_fastest: bool
 }
 
@@ -139,16 +141,24 @@ impl std::fmt::Display for BenchmarkResult {
 		let v = self.mean / 1e6;
 		let ci = self.t_ci();
 		write!(f,
-			"{:.5} ± {:.5} ({:.0}%){}",
-			    v,     ci, ci / v * 100.0, if self.is_fastest {" *"} else {""})
+			"{:.5} ± {:.5} ({:.0}%) {} {}",
+				v,     ci, ci / v * 100.0,
+				if self.is_stat_fastest {"s"} else {" "},
+				if self.is_fastest      {"*"} else {" "}
+			)
 	}
 }
 
 impl BenchmarkResult {
-	// returns a p-value
-	fn compare(&self, other: &BenchmarkResult) -> f64 {
+	// returns a p-value and a percent difference (based off of the smaller mean)
+	fn compare(&self, other: &BenchmarkResult) -> (f64, f64) {
+		// percent diff
+		let min = utils::fmin(self.mean, other.mean);
+		let max = utils::fmax(self.mean, other.mean);
+		let diff = (max - min) / min;
+		// p value
 		if self.stdev == 0.0 || other.stdev == 0.0 { // will cause problems / infinite / nan values
-			return 0.0; // I guess?
+			return (0.0, diff); // I guess?
 		}
 		let p = statistics::two_sample_t_test(self.mean, other.mean,
 											  self.stdev, other.stdev,
@@ -158,7 +168,20 @@ impl BenchmarkResult {
 		assert!(!p.is_infinite(), "problematic value: {}", p);
 		assert!(!p.is_sign_negative(), "problematic value: {}", p);
 		assert!(p <= 1.0, "problematic value: {}", p);
-		p
+		(p, diff)
+	}
+	fn update_display(&mut self, other: &BenchmarkResult) {
+		let (p, diff) = self.compare(other);
+		if p >= ALPHA {
+			self.is_stat_fastest = true;
+		}
+		if diff <= DIFF_THRESHOLD {
+			self.is_fastest = true;
+		}
+	}
+	fn reset_display(&mut self) {
+		self.is_stat_fastest = false;
+		self.is_fastest = false;
 	}
 	#[allow(dead_code)]
 	fn z_ci(&self) -> f64 {
@@ -366,7 +389,9 @@ impl BenchmarkManager {
 					mean,
 					stdev,
 					count: results.len(),
-					is_fastest: false // field will be used in display code
+					// fields will be used in display code
+					is_fastest: false,
+					is_stat_fastest: false
 				});
 			}
 		}
@@ -560,10 +585,8 @@ impl BenchmarkManager {
 				for j in 0..self.algorithms.len() {
 					if filter(&self.algorithms[j].1, self.algorithms[j].2) {
 						if self.results_table[j][i].is_some() {
-							let mut ar = self.results_table[j][i].as_mut().unwrap();
-							if min.compare(&ar) >= ALPHA {
-								ar.is_fastest = true;
-							}
+							let ar = self.results_table[j][i].as_mut().unwrap();
+							ar.update_display(&min);
 						}
 					}
 				}
@@ -590,12 +613,13 @@ impl BenchmarkManager {
 			}
 		}
 		table.printstd();
-		println!("└ Values in ms; 98% confidence interval displayed");
+		println!("└ Values in ms; 98% confidence interval displayed; \
+					s = statistically equal to fastest; * = within 5% of fastest");
 		// reset mins / maxes
 		for a in &mut self.results_table {
 			for b in a {
 				if b.is_some() {
-					b.as_mut().unwrap().is_fastest = false;
+					b.as_mut().unwrap().reset_display();
 				}
 			}
 		}

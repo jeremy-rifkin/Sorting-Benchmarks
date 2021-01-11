@@ -68,3 +68,21 @@ pub fn commafy(mut num: usize) -> String {
 pub fn verify_sorted<T: Ord + std::fmt::Debug>(array: &[T]) {
 	assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
 }
+
+pub fn fmin<T: PartialOrd>(f0: T, f1: T) -> T {
+	// assuming neither is NaN
+	if f0 < f1 {
+		f0
+	} else {
+		f1
+	}
+}
+
+pub fn fmax<T: PartialOrd>(f0: T, f1: T) -> T {
+	// assuming neither is NaN
+	if f0 < f1 {
+		f1
+	} else {
+		f0
+	}
+}
