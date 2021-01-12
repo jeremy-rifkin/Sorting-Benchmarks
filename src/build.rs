@@ -15,7 +15,7 @@ fn main() {
 	{
 		// this will have to be updated for every raspberry pi tested on
 		if procfs::CpuInfo::new().unwrap().fields["model name"] == "ARMv6-compatible processor rev 7 (v6l)" {
-			println!("cargo:rustc-cfg=raspberry_pi");
+			println!("cargo:rustc-cfg=arm11");
 		}
 	}
 	//#[cfg(target_os = "windows")]

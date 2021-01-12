@@ -81,9 +81,9 @@ mod tests;
 //
 
 const MIN_TEST_SIZE: usize = 10;
-#[cfg(not(raspberry_pi))]
+#[cfg(not(arm11))]
 const MAX_TEST_SIZE: usize = 1_000_000;
-#[cfg(raspberry_pi)]
+#[cfg(arm11)]
 const MAX_TEST_SIZE: usize = 100_000;
 const N_TESTS: usize = 200;
 const ALPHA: f64 = 0.001;
