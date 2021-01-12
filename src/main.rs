@@ -257,6 +257,8 @@ impl BenchmarkManager {
 				sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
 				sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
 				sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
+				sfn!(algos::drugsort::<i32>,                 "O(n^2)"),
+				sfn!(algos::methsort::<i32>,                 "O(n^2)"),
 				sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
 				sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
 				sfn!(algos::insertionsort_c,                 "O(n^2)"),

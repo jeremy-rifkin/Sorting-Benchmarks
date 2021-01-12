@@ -48,3 +48,28 @@ pub fn drugsort<T: Ord>(array: &mut [T]) {
 		}
 	}
 }
+
+pub fn methsort<T: Ord + Copy>(array: &mut [T]) {
+	unsafe {
+		for i in 0..(array.len() / 2) {
+			let mut min = *array.get_unchecked(i);
+			let mut min_index = i;
+			let mut max = *array.get_unchecked(i);
+			let mut max_index = i;
+			for j in (i + 1)..(array.len() - i) {
+				if *array.get_unchecked(j) < min {
+					min = *array.get_unchecked(j);
+					min_index = j;
+				} else if *array.get_unchecked(j) > max {
+					max = *array.get_unchecked(j);
+					max_index = j;
+				}
+			}
+			if i == max_index {
+				max_index = min_index;
+			}
+			array.swap_unchecked(i, min_index);
+			array.swap_unchecked(array.len() - 1 - i, max_index);
+		}
+	}
+}
