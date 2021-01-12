@@ -1,4 +1,4 @@
-# Sorting Benchmarks
+# Sorting Benchmarks [Draft]
 
 ![build status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/build/badge.svg)
 ![tests status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/tests/badge.svg)
@@ -10,12 +10,12 @@ The canonical example is mergesort vs. heapsort (which has poor cache performanc
 This project experimentally and rigorously benchmarks the hardware performance of various sorting
 algorithms.
 
-- [Sorting Benchmarks](#sorting-benchmarks)
+## Table of Contents
 - [Results](#results)
 - [Benchmarking is Hard](#benchmarking-is-hard)
 - [Benchmarking Strategy](#benchmarking-strategy)
 - [Rust Performance](#rust-performance)
-- [Significance and Planned Work](#significance-and-planned-work)
+- [Conclusion and Future Work](#conclusion-and-future-work)
 
 # Results
 
@@ -31,9 +31,9 @@ modes), These checks are helpful for safety but are costly. The branch predictor
 substantially, however, the checks are still not free and break up basic blocks. Below is a
 comparison of insertionsort implemented with rust boundary checks, two rust insertionsort
 implementations which use unsafe access to circumvent boundary checks, and an insertionsort
-implementation in pure c.
+implementation in pure C.
 
-Intel 4th gen i7, Ubuntu, gcc & rust llvm
+**Intel 4th gen i7, Ubuntu, gcc & rust llvm**
 ```
 Insertion sorts:
 +-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
@@ -50,7 +50,7 @@ Insertion sorts:
 └ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
 ```
 
-Intel 10th gen i7, Wandows, mingw-64 & rust llvm
+**Intel 10th gen i7, Wandows, mingw-64 & rust llvm**
 ```
 Insertion sorts:
 +-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
@@ -67,38 +67,48 @@ Insertion sorts:
 └ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
 ```
 
-ARM1176, Raspbian, gcc & rust llvm
+**ARM1176, Raspbian, gcc & rust llvm**
 ```
 Insertion sorts:
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-|                               | 10                         | 100                        | 1,000                      | 10,000                       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-| algos::cocktail_shaker        | 0.01002 ± 0.00017 (2%)     | 0.06346 ± 0.00051 (1%)     | 5.25817 ± 0.02313 (0%)     | -                            |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-| algos::cocktail_shaker_unsafe | 0.00949 ± 0.00017 (2%)     | 0.05602 ± 0.00045 (1%)     | 4.49514 ± 0.01654 (0%)     | -                            |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-| algos::selectionsort          | 0.00900 ± 0.00000 (0%)   * | 0.05229 ± 0.00014 (0%)     | 4.07790 ± 0.00671 (0%)     | -                            |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-| algos::insertionsort          | 0.00942 ± 0.00019 (2%)     | 0.04698 ± 0.00040 (1%)     | 3.56845 ± 0.01596 (0%)     | -                            |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-| algos::insertionsort_unsafe   | 0.00900 ± 0.00000 (0%) s * | 0.04166 ± 0.00032 (1%)     | 3.06175 ± 0.01298 (0%)     | -                            |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-| algos::insertionsort_unsafe_2 | 0.00892 ± 0.00016 (2%) s * | 0.04151 ± 0.00035 (1%)     | 3.06357 ± 0.01368 (0%)     | -                            |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
-| algos::insertionsort_c        | 0.01000 ± 0.00000 (0%)     | 0.03345 ± 0.00025 (1%) s * | 2.06649 ± 0.01074 (1%) s * | 255.24971 ± 1.00602 (0%) s * |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
++-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+|                               | 10                         | 100                        | 1,000                      | 10,000                       | 100,000 |
++-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+| algos::insertionsort          | 0.00942 ± 0.00019 (2%)     | 0.04698 ± 0.00040 (1%)     | 3.56845 ± 0.01596 (0%)     | -                            | -       |
++-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+| algos::insertionsort_unsafe   | 0.00900 ± 0.00000 (0%) s * | 0.04166 ± 0.00032 (1%)     | 3.06175 ± 0.01298 (0%)     | -                            | -       |
++-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+| algos::insertionsort_unsafe_2 | 0.00892 ± 0.00016 (2%) s * | 0.04151 ± 0.00035 (1%)     | 3.06357 ± 0.01368 (0%)     | -                            | -       |
++-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+| algos::insertionsort_c        | 0.01000 ± 0.00000 (0%)     | 0.03345 ± 0.00025 (1%) s * | 2.06649 ± 0.01074 (1%) s * | 255.24971 ± 1.00602 (0%) s * | -       |
++-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
 └ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
 ```
 
-Using unsafe access, we're able to achieve performance on-par (and sometimes faster) than pure c.
+**Conclusion:** Using unsafe access, we're able to achieve performance on-par (and sometimes faster)
+than pure C.
 
-I'm not sure what allows the unsafe rust implementation to out-perform the c implementation. It's on
-the backlog to investigate the assembly to better understand that. Hypothesis:
-- Rust optimizes better
+I'm not sure what allows the unsafe rust implementation to out-perform the C implementation. It's on
+the backlog to investigate the generated assembly and better what's going on here. Hypotheses:
+- Rust optimizes better.
 - C is actually faster but there's an overhead to offset due to how the method call works (e.g. due
   to linkage and lack of inlining). This hypothesis would explain the results from `Intel 4th gen
-  i7, Ubuntu, gcc & rust llvm` where the rust code out-performs c but only to a point.
+  i7, Ubuntu, gcc & rust llvm` where the rust code out-performs C but only to a point.
 - There are other factors contributing to the code performance: e.g. the layout of the code in the
   final executable. (As described by Emery Berger).
 
-# Significance and Planned Work
+# Conclusion and Future Work
+
+write more about results here...
+
+The applications of work like this would be in dialing in the threshold for hybrid algorithms (i.e.
+at what point do you switch to insertionsort in introsort). At the moment this application only runs
+algorithms on various input sizes. I would like to add the functionality to systematically alter
+algorithm parameters.
+
+Then again, who cares about performance-quibbling sorting algorithms 🤷‍♂️
+
+Other Backlog:
+- Investigate generated assembly for the various insertion sorts.
+- Convert all rust algorithm implementations to use unsafe access.
+- Add hybrid sorting algorithms to test. Introsort and timsort are of interest.
+- Generate some graphs, not just tables.
