@@ -3,53 +3,58 @@ use crate::swap_unsafe::SwapUnsafe;
 
 // TODO: get rid of
 pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
-	let mut i = 0;
-	let mut j = middle;
-	let mut k = 0;
-	let mut merged: Vec<T> = vec![slice[0]; slice.len()];
-	while i < middle && j < slice.len() {
-		merged[k] = if slice[i] < slice[j] {i += 1; slice[i - 1]} else {j += 1; slice[j - 1]};
-		k += 1;
+	unsafe {
+		let mut i = 0;
+		let mut j = middle;
+		let mut k = 0;
+		let mut merged: Vec<T> = vec![slice[0]; slice.len()];
+		while i < middle && j < slice.len() {
+			*merged.get_unchecked_mut(k) = if *slice.get_unchecked(i) < *slice.get_unchecked(j)
+				{i += 1; *slice.get_unchecked(i - 1)} else {j += 1; *slice.get_unchecked(j - 1)};
+			k += 1;
+		}
+		while i < middle {
+			*merged.get_unchecked_mut(k) = *slice.get_unchecked(i);
+			i += 1;
+			k += 1;
+		}
+		while j < slice.len() {
+			*merged.get_unchecked_mut(k) = *slice.get_unchecked(j);
+			j += 1;
+			k += 1;
+		}
+		slice.copy_from_slice(&merged);
 	}
-	while i < middle {
-		merged[k] = slice[i];
-		i += 1;
-		k += 1;
-	}
-	while j < slice.len() {
-		merged[k] = slice[j];
-		j += 1;
-		k += 1;
-	}
-	slice.copy_from_slice(&merged);
 }
 
 fn merge<T: Ord + Copy>(slice: &mut [T], buffer: &mut Vec<T>) {
-	let middle = slice.len() / 2;
-	let mut i = 0;
-	let mut j = middle;
-	let mut k = 0;
-	while i < middle && j < slice.len() {
-		if slice[i] < slice[j] {
-			i += 1;
-			buffer[k] = slice[i - 1];
-		} else {
-			j += 1;
-			buffer[k] = slice[j - 1];
+	unsafe {
+		let middle = slice.len() / 2;
+		let mut i = 0;
+		let mut j = middle;
+		let mut k = 0;
+		while i < middle && j < slice.len() {
+			if slice.get_unchecked(i) < slice.get_unchecked(j) {
+				i += 1;
+				*buffer.get_unchecked_mut(k) = *slice.get_unchecked(i - 1);
+			} else {
+				j += 1;
+				*buffer.get_unchecked_mut(k) = *slice.get_unchecked(j - 1);
+			}
+			k += 1;
 		}
-		k += 1;
+		while i < middle {
+			*buffer.get_unchecked_mut(k) = *slice.get_unchecked(i);
+			i += 1;
+			k += 1;
+		}
+		while j < slice.len() {
+			*buffer.get_unchecked_mut(k) = *slice.get_unchecked(j);
+			j += 1;
+			k += 1;
+		}
+		slice.copy_from_slice(&buffer[..slice.len()]);
 	}
-	while i < middle {
-		buffer[k] = slice[i];
-		i += 1;
-		k += 1;
-	}
-	while j < slice.len() {
-		buffer[k] = slice[j];
-		j += 1;
-		k += 1;
-	}
-	slice.copy_from_slice(&buffer[..slice.len()]);
 }
 
 pub fn mergesort_repeated_alloc<T: Ord + Copy + Default>(array: &mut [T]) {
@@ -103,23 +108,25 @@ fn merge_in_place_naive<T: Ord + Copy>(array: &mut [T]) {
 	// TODO: could also check if the sub-arrays are backwards (happens if the array is fully reversed)
 	// TODO: is it actually worth it to perform this kind of check? the probability of something
 	// paying off is low...
-	if array[mid - 1] <= array[mid] {
-		return;
-	}
-	while i < mid && j < array.len() {
-		if array[i] <= array[j] {
-			i += 1;
-		} else {
-			let v = array[j];
-			let mut k = j;
-			while k > i {
-				array[k] = array[k - 1];
-				k -= 1;
+	unsafe {
+		if array.get_unchecked(mid - 1) <= array.get_unchecked(mid) {
+			return;
+		}
+		while i < mid && j < array.len() {
+			if array.get_unchecked(i) <= array.get_unchecked(j) {
+				i += 1;
+			} else {
+				let v = *array.get_unchecked(j);
+				let mut k = j;
+				while k > i {
+					*array.get_unchecked_mut(k) = *array.get_unchecked(k - 1);
+					k -= 1;
+				}
+				*array.get_unchecked_mut(i) = v;
+				i += 1;
+				mid += 1;
+				j += 1;
 			}
-			array[i] = v;
-			i += 1;
-			mid += 1;
-			j += 1;
 		}
 	}
 }
@@ -157,9 +164,11 @@ fn imsort<T: Ord + Copy>(xs: &mut [T], l: usize, u: usize) {
 		n = w;
 		while n > l {
 			m = n;
-			while m < u && xs[m] < xs[m-1] {
-				xs.swap(m, m - 1);
-				m += 1;
+			unsafe {
+				while m < u && xs.get_unchecked(m) < xs.get_unchecked(m-1) {
+					xs.swap_unchecked(m, m - 1);
+					m += 1;
+				}
 			}
 			n -= 1;
 		}
@@ -175,7 +184,9 @@ fn wsort<T: Ord + Copy>(xs: &mut [T], mut l: usize, u: usize, mut w: usize) {
 		wmerge(xs, l, m, m, u, w);
 	} else {
 		while l < u {
-			xs.swap(l, w);
+			unsafe {
+				xs.swap_unchecked(l, w);
+			}
 			l += 1;
 			w += 1;
 		}
@@ -183,28 +194,29 @@ fn wsort<T: Ord + Copy>(xs: &mut [T], mut l: usize, u: usize, mut w: usize) {
 }
 
 fn wmerge<T: Ord + Copy>(xs: &mut [T], mut i: usize, m: usize, mut j: usize, n: usize, mut w: usize) {
-	while i < m && j < n {
-		#[allow(unused_assignments)]
-		let mut k: usize = 0;
-		if xs[i] < xs[j] {
-			k = i;
+	unsafe {
+		while i < m && j < n {
+			let k;
+			if xs.get_unchecked(i) < xs.get_unchecked(j) {
+				k = i;
+				i += 1;
+			} else {
+				k = j;
+				j += 1;
+			}
+			xs.swap_unchecked(w, k);
+			w += 1;
+		}
+		while i < m {
+			xs.swap_unchecked(w, i);
+			w += 1;
 			i += 1;
-		} else {
-			k = j;
+		}
+		while j < n {
+			xs.swap_unchecked(w, j);
+			w += 1;
 			j += 1;
 		}
-		xs.swap(w, k);
-		w += 1;
-	}
-	while i < m {
-		xs.swap(w, i);
-		w += 1;
-		i += 1;
-	}
-	while j < n {
-		xs.swap(w, j);
-		w += 1;
-		j += 1;
 	}
 }
 
