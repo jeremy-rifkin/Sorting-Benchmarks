@@ -249,13 +249,10 @@ impl BenchmarkManager {
 	pub fn new() -> BenchmarkManager {
 		let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
 			sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
-			sfn!(algos::bubblesort_unsafe::<i32>,        "O(n^2)"),
 			sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
-			sfn!(algos::cocktail_shaker_unsafe::<i32>,   "O(n^2)"),
 			sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
 			sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
-			sfn!(algos::insertionsort_unsafe::<i32>,     "O(n^2)"),
-			sfn!(algos::insertionsort_unsafe_2::<i32>,   "O(n^2)"),
+			sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
 			sfn!(algos::insertionsort_c,                 "O(n^2)"),
 			sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
 			sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),

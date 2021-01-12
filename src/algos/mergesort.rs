@@ -84,7 +84,7 @@ pub fn mergesort_hybrid<T: Ord + Copy + Default>(array: &mut [T]) {
 
 fn mergesort_hybrid_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut Vec<T>) {
 	if array.len() <= 32 {
-		algos::insertionsort_unsafe(array);
+		algos::insertionsort(array);
 		return;
 	}
 	let middle = array.len() / 2;
@@ -310,15 +310,14 @@ pub fn mergesort_adaptive<T: Ord + Copy>(array: &mut [T]) {
 }
 
 pub fn mergesort_double_hybrid<T: Ord + Copy>(array: &mut [T]) {
-	use algos::insertionsort_unsafe;
 	let mut merge_queue: VecDeque<usize> = VecDeque::new();
 	let mut i = 0;
 	while i + 32 < array.len() {
-		insertionsort_unsafe(&mut array[i..(i + 32)]);
+		algos::insertionsort(&mut array[i..(i + 32)]);
 		merge_queue.push_back(i + 32);
 		i += 32;
 	}
-	insertionsort_unsafe(&mut array[i..]);
+	algos::insertionsort(&mut array[i..]);
 	merge_queue.push_back(array.len());
 
 	let mut start = 0;

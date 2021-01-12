@@ -89,7 +89,7 @@ pub fn quicksort_end_unsafe<T: Ord + Copy>(array: &mut [T]) {
 
 pub fn quicksort_hybrid_unsafe<T: Ord + Copy>(array: &mut [T]) {
 	if array.len() <= 32 {
-		algos::insertionsort_unsafe(array);
+		algos::insertionsort(array);
 		return;
 	}
 	let pivot = partition_end_unsafe(array);
