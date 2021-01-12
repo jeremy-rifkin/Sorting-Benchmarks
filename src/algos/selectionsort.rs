@@ -1,6 +1,6 @@
 use crate::swap_unsafe::SwapUnsafe;
 
-pub fn selectionsort<T: Ord + Copy>(array: &mut [T]) {
+pub fn selectionsort<T: Ord>(array: &mut [T]) {
 	unsafe {
 		for i in 0..(array.len() - 1) {
 			let mut min = array.get_unchecked(i);
@@ -16,7 +16,7 @@ pub fn selectionsort<T: Ord + Copy>(array: &mut [T]) {
 	}
 }
 
-pub fn drugsort<T: Ord + Copy + std::fmt::Debug>(array: &mut [T]) {
+pub fn drugsort<T: Ord>(array: &mut [T]) {
 	unsafe {
 		let mut finding_max = true;
 		let mut edge_space = 0;
