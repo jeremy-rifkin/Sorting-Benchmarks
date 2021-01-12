@@ -1,4 +1,5 @@
 use crate::swap_unsafe::SwapUnsafe;
+
 pub fn cocktail_shaker<T: Ord>(array: &mut[T]) {
 	unsafe {
 		let mut lower = 0 as usize; // first unsorted element

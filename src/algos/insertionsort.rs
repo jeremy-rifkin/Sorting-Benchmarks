@@ -1,4 +1,5 @@
 use crate::swap_unsafe::SwapUnsafe;
+
 pub fn insertionsort<T: Ord>(array: &mut [T]) {
 	unsafe {
 		for mut i in 1..array.len() {

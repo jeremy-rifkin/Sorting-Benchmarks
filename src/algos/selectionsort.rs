@@ -1,13 +1,17 @@
-pub fn selectionsort<T: Ord + Copy>(slice: &mut [T]) {
-	for i in 0..(slice.len() - 1) {
-		let mut min = slice[i];
-		let mut min_index = i;
-		for j in (i + 1)..slice.len() {
-			if slice[j] < min {
-				min = slice[j];
-				min_index = j;
+use crate::swap_unsafe::SwapUnsafe;
+
+pub fn selectionsort<T: Ord + Copy>(array: &mut [T]) {
+	unsafe {
+		for i in 0..(array.len() - 1) {
+			let mut min = array.get_unchecked(i);
+			let mut min_index = i;
+			for j in (i + 1)..array.len() {
+				if array.get_unchecked(j) < min {
+					min = array.get_unchecked(j);
+					min_index = j;
+				}
 			}
+			array.swap_unchecked(i, min_index);
 		}
-		slice.swap(i, min_index);
 	}
 }

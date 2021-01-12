@@ -1,8 +1,14 @@
+use crate::swap_unsafe::SwapUnsafe;
+
+// TODO: explore optimizations of these implementations further
+
 fn insertion_gap<T: Ord>(array: &mut [T], gap: usize) {
-	for mut i in gap..array.len() {
-		while i >= gap && array[i - gap] > array[i] {
-			array.swap(i, i - gap);
-			i -= gap;
+	unsafe {
+		for mut i in gap..array.len() {
+			while i >= gap && array.get_unchecked(i - gap) > array.get_unchecked(i) {
+				array.swap_unchecked(i, i - gap);
+				i -= gap;
+			}
 		}
 	}
 }
@@ -104,23 +110,27 @@ pub fn shellsort_ciura<T: Ord>(slice: &mut [T]) {
 }
 
 fn insertion_gap_sequence<T: Ord>(array: &mut [T], gap_sequence: &[usize]) {
-	let mut j = 0;
-	for mut i in gap_sequence[j]..array.len() {
-		while j < gap_sequence.len() {
-			while i >= gap_sequence[j] && array[i - gap_sequence[j]] > array[i] {
-				array.swap(i, i - gap_sequence[j]);
-				i -= gap_sequence[j];
+	unsafe {
+		let mut j = 0;
+		for mut i in gap_sequence[j]..array.len() {
+			while j < gap_sequence.len() {
+				while i >= *gap_sequence.get_unchecked(j) && array.get_unchecked(i - gap_sequence.get_unchecked(j)) > array.get_unchecked(i) {
+					array.swap_unchecked(i, i - gap_sequence.get_unchecked(j));
+					i -= gap_sequence.get_unchecked(j);
+				}
+				j += 1;
 			}
-			j += 1;
+			j = 0;
 		}
-		j = 0;
 	}
 }
 
 pub fn shell_advanced_sequence<T: Ord>(slice: &mut [T], gap_sequence: &[usize]) {
-	for i in 0..gap_sequence.len() {
-		if gap_sequence[i] < slice.len() {
-			insertion_gap_sequence(slice, &gap_sequence[i..]);
+	unsafe {
+		for i in 0..gap_sequence.len() {
+			if *gap_sequence.get_unchecked(i) < slice.len() {
+				insertion_gap_sequence(slice, &gap_sequence[i..]);
+			}
 		}
 	}
 }
