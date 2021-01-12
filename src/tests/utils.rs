@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::utils;
 
 #[test]
@@ -5,6 +7,17 @@ fn test_commafy() {
 	assert_eq!(utils::commafy(123), "123");
 	assert_eq!(utils::commafy(123456), "123,456");
 	assert_eq!(utils::commafy(123456789), "123,456,789");
+}
+
+#[test]
+fn test_duration_to_human() {
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(500)), "500.00ns");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500)), "1.50μs");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500_000)), "1.50ms");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500_000_000)), "1.50s");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(30 * 1_000_000_000)), "30.00s");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(90 * 1_000_000_000)), "1m 30.00s");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(95 * 60 * 1_000_000_000 + 500_000_000)), "1h 35m 0.50s");
 }
 
 #[test]

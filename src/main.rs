@@ -342,7 +342,7 @@ impl BenchmarkManager {
 			test_vector[i] = rng.next_u32() as i32;
 		}
 		// sleep briefly - this is an attempt to produce more constant results
-		thread::sleep(Duration::from_millis(10));
+		if !TEST_MODE { thread::sleep(Duration::from_millis(10)) };
 		// test body:
 		let start = Instant::now();
 		sort(&mut test_vector);
@@ -678,10 +678,6 @@ fn main() {
 	let runtime = start.elapsed();
 
 	println!("Bubble sorts:");
-	manager.print(|n, _| n.contains("bubble"));
-	println!();
-
-	println!("Bubble sorts plus:");
 	manager.print(|n, _| n.contains("bubble") || n.contains("cocktail"));
 	println!();
 
