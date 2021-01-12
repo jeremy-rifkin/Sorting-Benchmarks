@@ -15,3 +15,36 @@ pub fn selectionsort<T: Ord + Copy>(array: &mut [T]) {
 		}
 	}
 }
+
+pub fn drugsort<T: Ord + Copy + std::fmt::Debug>(array: &mut [T]) {
+	unsafe {
+		let mut finding_max = true;
+		let mut edge_space = 0;
+		while edge_space * 2 + (!finding_max as usize) < array.len() {
+			if finding_max {
+				let mut max = array.get_unchecked(edge_space);
+				let mut max_index = edge_space;
+				for i in (edge_space + 1)..(array.len() - edge_space) {
+					if array.get_unchecked(i) > max {
+						max = array.get_unchecked(i);
+						max_index = i;
+					}
+				}
+				array.swap_unchecked(array.len() - 1 - edge_space, max_index);
+				finding_max = false;
+			} else {
+				let mut min = array.get_unchecked(array.len() - 1 - edge_space);
+				let mut min_index = array.len() - 1 - edge_space;
+				for i in edge_space..(array.len() - 1 - edge_space) {
+					if array.get_unchecked(i) < min {
+						min = array.get_unchecked(i);
+						min_index = i;
+					}
+				}
+				array.swap_unchecked(edge_space, min_index);
+				finding_max = true;
+				edge_space += 1;
+			}
+		}
+	}
+}
