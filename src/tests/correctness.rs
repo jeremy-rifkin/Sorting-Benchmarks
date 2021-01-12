@@ -172,11 +172,6 @@ fn test_quicksort_end() {
 }
 
 #[test]
-fn test_quicksort_end_unsafe() {
-	test_sorting_algorithm(algos::quicksort_end_unsafe);
-}
-
-#[test]
 fn test_quicksort_random() {
 	test_sorting_algorithm(algos::quicksort_random);
 }
@@ -184,11 +179,6 @@ fn test_quicksort_random() {
 #[test]
 fn test_quicksort_hybrid() {
 	test_sorting_algorithm(algos::quicksort_hybrid);
-}
-
-#[test]
-fn test_quicksort_hybrid_unsafe() {
-	test_sorting_algorithm(algos::quicksort_hybrid_unsafe);
 }
 
 #[test]
