@@ -10,17 +10,20 @@ pub use heapsort::*;
 pub mod insertionsort;
 pub use insertionsort::*;
 
+pub mod introsort;
+pub use introsort::*;
+
 pub mod mergesort;
 pub use mergesort::*;
-
-pub mod misc;
-pub use misc::*;
 
 pub mod quicksort;
 pub use quicksort::*;
 
 pub mod radixsort;
 pub use radixsort::*;
+
+pub mod rustsort;
+pub use rustsort::*;
 
 pub mod selectionsort;
 pub use selectionsort::*;

@@ -13,6 +13,7 @@ use rand::{RngCore, SeedableRng, seq::SliceRandom};
 use regex::Regex;
 
 mod algos;
+mod exp_algos;
 mod statistics;
 mod utils;
 mod swap_unsafe;
@@ -268,7 +269,7 @@ impl BenchmarkManager {
 				sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
 				sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
 				sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
-				sfn!(algos::shellsort_advanced_ciura::<i32>, "O(n^(4/3))"),
+				sfn!(exp_algos::shellsort_alternative_ciura::<i32>,"O(n^(4/3))"),
 				sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 				sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
 				sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
@@ -281,7 +282,7 @@ impl BenchmarkManager {
 				sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
 				sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 				sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
-				sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
+				sfn!(exp_algos::weird::<i32>,                "O(n^(3/2))"),
 				sfn!(algos::radixsort,                       "O(n)"),
 				sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
 				sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)"),

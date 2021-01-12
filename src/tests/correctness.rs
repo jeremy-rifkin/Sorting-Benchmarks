@@ -115,11 +115,6 @@ fn test_shellsort_ciura() {
 }
 
 #[test]
-fn test_shellsort_advanced_ciura() {
-	test_sorting_algorithm(algos::shellsort::shellsort_advanced_ciura);
-}
-
-#[test]
 fn test_heapsort_top_down() {
 	test_sorting_algorithm(algos::heapsort::heapsort_top_down);
 }
@@ -182,11 +177,6 @@ fn test_quicksort_hybrid() {
 }
 
 #[test]
-fn test_weird() {
-	test_sorting_algorithm(algos::weird);
-}
-
-#[test]
 fn test_radixsort() {
 	test_sorting_algorithm(algos::radixsort);
 }
@@ -200,3 +190,15 @@ fn test_cpp_std_sort() {
 //fn test_cpp_std_stable_sort() {
 //	test_sorting_algorithm(algos::cpp_std_stable_sort);
 //}
+
+// ---------------------  experimental algos  ---------------------
+use crate::exp_algos;
+#[test]
+fn test_weird() {
+	test_sorting_algorithm(exp_algos::weird);
+}
+
+#[test]
+fn test_alternative() {
+	test_sorting_algorithm(exp_algos::shellsort_alternative_ciura);
+}
