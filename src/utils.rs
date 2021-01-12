@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 // this macro is shorthand for adding algorithms to to benchmark
 // input: function pointer, string
 // output: tuple (fn pointer, fn name, string)
@@ -63,6 +65,29 @@ pub fn commafy(mut num: usize) -> String {
 		count += 1;
 	}
 	return String::from_utf8(s).unwrap();
+}
+
+pub fn duration_to_human(d: Duration) -> String {
+	let ns = d.as_nanos() as f64;
+	if ns < 1e3 {
+		format!("{:.2}ns", ns)
+	} else if ns < 1e6 {
+		format!("{:.2}μs", ns / 1e3)
+	} else if ns < 1e9 {
+		format!("{:.2}ms", ns / 1e6)
+	} else {
+		let seconds = ns / 1e9;
+		if seconds < 60.0 {
+			format!("{:.2}s", seconds)
+		} else if seconds < 60.0 * 60.0 {
+			format!("{}m {:.2}s", (seconds / 60.0).floor(), seconds % 60.0)
+		} else {
+			format!("{}h {}m {:.2}s",
+				(seconds / (60.0 * 60.0)).floor(),
+				((seconds % (60.0 * 60.0)) / 60.0).floor(),
+				(seconds % (60.0 * 60.0)) % 60.0)
+		}
+	}
 }
 
 pub fn verify_sorted<T: Ord + std::fmt::Debug>(array: &[T]) {

@@ -80,12 +80,16 @@ mod tests;
 // Note: The benchmarking takes a while to run, but it's thorough
 //
 
+// this flag will disable a lot of algorithms and reduce the number of tests performed
+// this is for use during development
+const TEST_MODE: bool = false;
+
 const MIN_TEST_SIZE: usize = 10;
 #[cfg(not(arm11))]
-const MAX_TEST_SIZE: usize = 1_000_000;
+const MAX_TEST_SIZE: usize = if !TEST_MODE { 1_000_000 } else { 10_000 };
 #[cfg(arm11)]
-const MAX_TEST_SIZE: usize = 100_000;
-const N_TESTS: usize = 200;
+const MAX_TEST_SIZE: usize = if !TEST_MODE { 100_000   } else { 10_000 };
+const N_TESTS: usize =       if !TEST_MODE { 200       } else { 50     };
 const ALPHA: f64 = 0.001;
 const DIFF_THRESHOLD: f64 = 0.05;
 
@@ -247,38 +251,61 @@ struct BenchmarkManager {
 
 impl BenchmarkManager {
 	pub fn new() -> BenchmarkManager {
-		let algorithms: Vec<(fn(&mut [i32]), String, &str)> = vec![
-			sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
-			sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
-			sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
-			sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
-			sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
-			sfn!(algos::insertionsort_c,                 "O(n^2)"),
-			sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
-			sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),
-			sfn!(algos::shellsort_sedgewick86::<i32>,    "O(n^(4/3))"),
-			sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
-			sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
-			sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
-			sfn!(algos::shellsort_advanced_ciura::<i32>, "O(n^(4/3))"),
-			sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
-			sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
-			sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
-			sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
-			sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
-			sfn!(algos::mergesort_adaptive::<i32>,       "O(n log n)"),
-			sfn!(algos::mergesort_double_hybrid::<i32>,  "O(n log n)"),
-			sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
-			sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
-			sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
-			sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
-			sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
-			sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
-			sfn!(algos::radixsort,                       "O(n)"),
-			sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
-			sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)"),
-			sfn!(algos::cpp_std_sort,                    "O(n log n)")
-		];
+		let algorithms: Vec<(fn(&mut [i32]), String, &str)> =
+		if !TEST_MODE {
+			 vec![
+				sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
+				sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
+				sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
+				sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
+				sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
+				sfn!(algos::insertionsort_c,                 "O(n^2)"),
+				sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
+				sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),
+				sfn!(algos::shellsort_sedgewick86::<i32>,    "O(n^(4/3))"),
+				sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
+				sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
+				sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
+				sfn!(algos::shellsort_advanced_ciura::<i32>, "O(n^(4/3))"),
+				sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
+				sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
+				sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
+				sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
+				sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
+				sfn!(algos::mergesort_adaptive::<i32>,       "O(n log n)"),
+				sfn!(algos::mergesort_double_hybrid::<i32>,  "O(n log n)"),
+				sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
+				sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
+				sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
+				sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
+				sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
+				sfn!(algos::weird::<i32>,                    "O(n^(3/2))"),
+				sfn!(algos::radixsort,                       "O(n)"),
+				sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
+				sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)"),
+				sfn!(algos::cpp_std_sort,                    "O(n log n)")
+			]
+		} else {
+			vec![
+				sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
+				sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
+				sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
+				sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
+				sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
+				sfn!(algos::insertionsort_c,                 "O(n^2)"),
+				sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
+				sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),
+				sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
+				sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
+				sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
+				sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
+				sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
+				sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
+				sfn!(algos::radixsort,                       "O(n)"),
+				sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
+				sfn!(algos::cpp_std_sort,                    "O(n log n)")
+			]
+		};
 		// TODO: single vec serving as 2D array? algorithms[i][j] = results[i * len + j]
 		let results_table = vec![vec![Option::None; TEST_SIZES.len()]; algorithms.len()];
 		BenchmarkManager {
@@ -640,11 +667,13 @@ mod test {
 
 fn main() {
 	let mut manager = BenchmarkManager::new();
+	let start = Instant::now();
 	if num_cpus::get_physical() <= 2 {
 		manager.run_benchmarks_single_threaded();
 	} else {
 		manager.run_benchmarks();
 	}
+	let runtime = start.elapsed();
 
 	println!("Bubble sorts:");
 	manager.print(|n, _| n.contains("bubble"));
@@ -682,5 +711,8 @@ fn main() {
 
 	println!("Totals:");
 	manager.print(|n, _| !n.contains("radix"));
+
+	println!("\nRuntime: {}", utils::duration_to_human(runtime));
+
 	return;
 }
