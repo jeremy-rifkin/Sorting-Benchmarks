@@ -216,8 +216,10 @@ fn wmerge<T: Ord + Copy>(xs: &mut [T], mut i: usize, m: usize, mut j: usize, n: 
 use std::collections::VecDeque;
 
 fn reverse<T>(slice: &mut [T]) {
-	for i in 0..(slice.len() / 2) {
-		slice.swap_unchecked(i, slice.len() - 1 - i);
+	unsafe {
+		for i in 0..(slice.len() / 2) {
+			slice.swap_unchecked(i, slice.len() - 1 - i);
+		}
 	}
 }
 

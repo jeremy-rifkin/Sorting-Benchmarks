@@ -3,16 +3,18 @@ use rand::{Rng, SeedableRng};
 use crate::algos;
 
 fn partition_end<T: Ord + Copy>(slice: &mut [T]) -> usize {
-	let pivot = *slice.get_unchecked(slice.len() - 1);
-	let mut i = 0;
-	for j in 0..(slice.len() - 1) {
-		if *slice.get_unchecked(j) < pivot {
-			slice.swap(i, j);
-			i += 1;
+	unsafe {
+		let pivot = *slice.get_unchecked(slice.len() - 1);
+		let mut i = 0;
+		for j in 0..(slice.len() - 1) {
+			if *slice.get_unchecked(j) < pivot {
+				slice.swap(i, j);
+				i += 1;
+			}
 		}
+		slice.swap(i, slice.len() - 1);
+		return i;
 	}
-	slice.swap(i, slice.len() - 1);
-	return i;
 }
 
 pub fn quicksort_end<T: Ord + Copy>(array: &mut [T]) {
