@@ -19,3 +19,14 @@ fn test_verify_unsorted() {
 	utils::verify_sorted(&[1,1,1,1,0]);
 }
 
+#[test]
+fn test_fmin() {
+	assert_eq!(utils::fmin(1.0, 2.0), 1.0);
+	assert_eq!(utils::fmin(2.0, 1.0), 1.0);
+}
+
+#[test]
+fn test_fmax() {
+	assert_eq!(utils::fmax(1.0, 2.0), 2.0);
+	assert_eq!(utils::fmax(2.0, 1.0), 2.0);
+}
