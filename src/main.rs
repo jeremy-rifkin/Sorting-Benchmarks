@@ -423,6 +423,13 @@ impl BenchmarkManager {
 			}
 		}
 	}
+	fn est_time_remaining(start: &Instant, n_jobs: usize, jobs_remaining: usize) -> String {
+		let elapsed = start.elapsed();
+		let completed = n_jobs - jobs_remaining;
+		let r = completed as f64 / elapsed.as_nanos() as f64;
+		let time_remaining = jobs_remaining as f64 / r;
+		utils::duration_to_human(Duration::from_nanos(time_remaining as u64))
+	}
 	pub fn run_benchmarks(&mut self) {
 		// thread strategy:
 		//  * spawn physical cores - 1 threads to perform benchmarking
@@ -483,8 +490,9 @@ impl BenchmarkManager {
 		// the size of this Vec is O(really big)
 		// this vec is used like a stack - jobs are consumed from the top
 		let mut jobs = self.generate_benchmark_jobs();
+		let n_jobs = jobs.len();
 		println!("executing of jobs: {} on {} threads with max size = {}",
-			utils::commafy(jobs.len()),
+			utils::commafy(n_jobs),
 			*N_WORKERS,
 			utils::commafy(MAX_TEST_SIZE));
 		// shuffle jobs using seed
@@ -510,6 +518,9 @@ impl BenchmarkManager {
 		//   handle teardown
 		// loop will break when all threads have reported with their final results and had their
 		// channels torn down
+		let start = Instant::now();
+		let mut last_update = 0;
+		eprint!("starting...");
 		for received in coordinator_rx {
 			let (thread_id, result) = received;
 			if result == u64::MAX /* && assignments[thread_id].is_none() */ {
@@ -524,9 +535,16 @@ impl BenchmarkManager {
 			}
 			// dispatch new work or teardown
 			if let Option::Some(job) = self.get_next_job(&time_table, &mut jobs) {
-				println!("{} {} {}", utils::commafy(jobs.len()),
-									 self.algorithms[job.0].1,
-									 utils::commafy(TEST_SIZES[job.1]));
+				// update status roughly every second
+				if start.elapsed().as_millis() as u64 - last_update >= 1_000 {
+					last_update = start.elapsed().as_millis() as u64;
+					let time_remaining = BenchmarkManager::est_time_remaining(&start, n_jobs, jobs.len());
+					eprint!("\x1b[2K\r{}/{} {} {} {}",
+								utils::commafy(jobs.len()), utils::commafy(n_jobs),
+								time_remaining,
+								self.algorithms[job.0].1,
+								utils::commafy(TEST_SIZES[job.1]));
+				}
 				channels[thread_id].as_ref()
 								   .unwrap()
 								   .send(MPMessage::new_work_message(WorkDescriptor {
@@ -542,6 +560,7 @@ impl BenchmarkManager {
 				// could set thread's assignment to none but it doesn't matter
 			}
 		}
+		println!();
 		// join all threads
 		println!("joining");
 		for thread in threads {
@@ -558,8 +577,9 @@ impl BenchmarkManager {
 		// the size of this Vec is O(really big)
 		// this vec is used like a stack - jobs are consumed from the top
 		let mut jobs = self.generate_benchmark_jobs();
+		let n_jobs = jobs.len();
 		println!("executing of jobs: {} on single-threaded with max size = {}",
-			utils::commafy(jobs.len()),
+			utils::commafy(n_jobs),
 			utils::commafy(MAX_TEST_SIZE));
 		// shuffle jobs using seed
 		let mut rng = SmallRng::seed_from_u64(RNG_SEED);
@@ -573,10 +593,20 @@ impl BenchmarkManager {
 		// could just sum results, but may as well keep running sums in this table
 		let mut time_table = vec![vec![0u64; TEST_SIZES.len()]; self.algorithms.len()];
 		// job loop
+		let start = Instant::now();
+		let mut last_update = 0;
+		eprint!("starting...");
 		while let Option::Some(job) = self.get_next_job(&time_table, &mut jobs) {
-			println!("{} {} {}", utils::commafy(jobs.len()),
-								 self.algorithms[job.0].1,
-								 utils::commafy(TEST_SIZES[job.1]));
+			// update status roughly every second
+			if start.elapsed().as_millis() as u64 - last_update >= 1_000 {
+				last_update = start.elapsed().as_millis() as u64;
+				let time_remaining = BenchmarkManager::est_time_remaining(&start, n_jobs, jobs.len());
+				eprint!("\x1b[2K\r{}/{} {} {} {}",
+							utils::commafy(jobs.len()), utils::commafy(n_jobs),
+							time_remaining,
+							self.algorithms[job.0].1,
+							utils::commafy(TEST_SIZES[job.1]));
+			}
 			let result = BenchmarkManager::run_bench(
 				self.algorithms[job.0].0,
 				TEST_SIZES[job.1],
@@ -585,6 +615,7 @@ impl BenchmarkManager {
 			results[job.0][job.1].push(result);
 			time_table[job.0][job.1] += result;
 		}
+		println!();
 		// compute final results
 		self.compute_results(results);
 	}
