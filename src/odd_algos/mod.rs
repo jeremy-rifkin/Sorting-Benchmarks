@@ -1,6 +1,7 @@
 //
-// This module contains a number of experimental sorting algorithms we implemented in testing
-// just out of curiosity
+// This module contains a number of odd/non-standard/experimental sorting algorithms implemented
+// while working on the project
+// mostly out out of curiosity
 // some of them are cool, some of them are just memes
 // most of these are courtesy of Robochu
 //

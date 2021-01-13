@@ -13,7 +13,7 @@ use rand::{RngCore, SeedableRng, seq::SliceRandom};
 use regex::Regex;
 
 mod algos;
-mod exp_algos;
+mod odd_algos;
 mod statistics;
 mod utils;
 mod swap_unsafe;
@@ -258,8 +258,8 @@ impl BenchmarkManager {
 				sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
 				sfn!(algos::cocktail_shaker::<i32>,          "O(n^2)"),
 				sfn!(algos::selectionsort::<i32>,            "O(n^2)"),
-				sfn!(exp_algos::selectionsort_cocktail::<i32>,"O(n^2)"),
-				sfn!(exp_algos::selectionsort_minmax::<i32>, "O(n^2)"),
+				sfn!(odd_algos::selectionsort_cocktail::<i32>,"O(n^2)"),
+				sfn!(odd_algos::selectionsort_minmax::<i32>, "O(n^2)"),
 				sfn!(algos::insertionsort::<i32>,            "O(n^2)"),
 				sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
 				sfn!(algos::insertionsort_c,                 "O(n^2)"),
@@ -269,20 +269,20 @@ impl BenchmarkManager {
 				sfn!(algos::shellsort_gonnet_baeza::<i32>,   "O(n^(4/3))"),
 				sfn!(algos::shellsort_tokuda::<i32>,         "O(n^(4/3))"),
 				sfn!(algos::shellsort_ciura::<i32>,          "O(n^(4/3))"),
-				sfn!(exp_algos::shellsort_alternative_ciura::<i32>,"O(n^(4/3))"),
+				sfn!(odd_algos::shellsort_alternative_ciura::<i32>,"O(n^(4/3))"),
 				sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 				sfn!(algos::mergesort_repeated_alloc::<i32>, "O(n log n)"),
 				sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
 				sfn!(algos::mergesort_in_place_naive::<i32>, "O(n^2)"),
 				sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
-				sfn!(exp_algos::mergesort_adaptive::<i32>,   "O(n log n)"),
-				sfn!(exp_algos::mergesort_double_hybrid::<i32>,"O(n log n)"),
+				sfn!(odd_algos::mergesort_adaptive::<i32>,   "O(n log n)"),
+				sfn!(odd_algos::mergesort_double_hybrid::<i32>,"O(n log n)"),
 				sfn!(algos::heapsort_bottom_up::<i32>,       "O(n log n)"),
 				sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),
 				sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
 				sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 				sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
-				sfn!(exp_algos::weird::<i32>,                "O(n^(3/2))"),
+				sfn!(odd_algos::weird::<i32>,                "O(n^(3/2))"),
 				sfn!(algos::radixsort,                       "O(n)"),
 				sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
 				sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)"),

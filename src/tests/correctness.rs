@@ -151,14 +151,14 @@ fn test_mergesort_in_place() {
 
 #[test]
 fn test_mergesort_adaptive() {
-	test_sorting_algorithm(exp_algos::mergesort_adaptive);
+	test_sorting_algorithm(odd_algos::mergesort_adaptive);
 }
 
 #[test]
 fn test_mergesort_double_hybrid() {
-	test_sorting_algorithm(exp_algos::mergesort_double_hybrid);
+	test_sorting_algorithm(odd_algos::mergesort_double_hybrid);
 	// coverage for an edge case:
-	test_sorting_algorithm_size(exp_algos::mergesort_double_hybrid, 10_000);
+	test_sorting_algorithm_size(odd_algos::mergesort_double_hybrid, 10_000);
 }
 
 #[test]
@@ -192,13 +192,13 @@ fn test_cpp_std_sort() {
 //}
 
 // ---------------------  experimental algos  ---------------------
-use crate::exp_algos;
+use crate::odd_algos;
 #[test]
 fn test_weird() {
-	test_sorting_algorithm(exp_algos::weird);
+	test_sorting_algorithm(odd_algos::weird);
 }
 
 #[test]
 fn test_alternative() {
-	test_sorting_algorithm(exp_algos::shellsort_alternative_ciura);
+	test_sorting_algorithm(odd_algos::shellsort_alternative_ciura);
 }
