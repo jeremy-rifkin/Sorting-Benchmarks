@@ -193,6 +193,17 @@ fn test_cpp_std_sort() {
 
 // ---------------------  experimental algos  ---------------------
 use crate::odd_algos;
+
+#[test]
+fn test_selectionsort_cocktail() {
+	test_sorting_algorithm(odd_algos::selectionsort_cocktail);
+}
+
+#[test]
+fn test_selectionsort_minmax() {
+	test_sorting_algorithm(odd_algos::selectionsort_minmax);
+}
+
 #[test]
 fn test_weird() {
 	test_sorting_algorithm(odd_algos::weird);
