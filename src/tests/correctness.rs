@@ -151,14 +151,14 @@ fn test_mergesort_in_place() {
 
 #[test]
 fn test_mergesort_adaptive() {
-	test_sorting_algorithm(algos::mergesort::mergesort_adaptive);
+	test_sorting_algorithm(exp_algos::mergesort_adaptive);
 }
 
 #[test]
 fn test_mergesort_double_hybrid() {
-	test_sorting_algorithm(algos::mergesort::mergesort_double_hybrid);
+	test_sorting_algorithm(exp_algos::mergesort_double_hybrid);
 	// coverage for an edge case:
-	test_sorting_algorithm_size(algos::mergesort::mergesort_double_hybrid, 10_000);
+	test_sorting_algorithm_size(exp_algos::mergesort_double_hybrid, 10_000);
 }
 
 #[test]
