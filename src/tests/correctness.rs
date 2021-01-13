@@ -195,6 +195,11 @@ fn test_cpp_std_sort() {
 use crate::odd_algos;
 
 #[test]
+fn test_btreesort() {
+	test_sorting_algorithm(odd_algos::btreesort);
+}
+
+#[test]
 fn test_selectionsort_cocktail() {
 	test_sorting_algorithm(odd_algos::selectionsort_cocktail);
 }

@@ -10,6 +10,27 @@ use crate::algos::insertionsort;
 use crate::algos::merge_single;
 use crate::swap_unsafe::SwapUnsafe;
 
+use std::collections::BTreeMap;
+
+// performance using a bst to sort an array
+pub fn btreesort<T: Ord + Copy>(slice: &mut [T]) {
+	let mut tree: BTreeMap<T, i32> = BTreeMap::new();
+	for key in slice.iter() {
+		if let Option::Some(val) = tree.get_mut(key) {
+			*val += 1;
+		} else {
+			tree.insert(*key, 1);
+		}
+	}
+	let mut i = 0;
+	for (key, count) in tree.iter() {
+		for _ in 0..*count {
+			unsafe { *slice.get_unchecked_mut(i) = *key; }
+			i += 1;
+		}
+	}
+}
+
 // Robochu's sorting algorithm
 pub fn weird<T: Ord + Copy>(slice: &mut [T]) {
 	// Sort chunks of size sqrt(N) using an O(N^2) algorithm.

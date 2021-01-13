@@ -282,6 +282,7 @@ impl BenchmarkManager {
 				sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
 				sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 				sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
+				sfn!(odd_algos::btreesort::<i32>,            "O(n log n)"),
 				sfn!(odd_algos::weird::<i32>,                "O(n^(3/2))"),
 				sfn!(algos::radixsort,                       "O(n)"),
 				sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
@@ -671,7 +672,7 @@ mod test {
 fn main() {
 	let mut manager = BenchmarkManager::new();
 	let start = Instant::now();
-	if num_cpus::get_physical() <= 2 {
+	if *N_WORKERS < 2 {
 		manager.run_benchmarks_single_threaded();
 	} else {
 		manager.run_benchmarks();
