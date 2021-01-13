@@ -73,3 +73,38 @@ pub fn methsort<T: Ord + Copy>(array: &mut [T]) {
 		}
 	}
 }
+
+const HENTAI_MULTIPLIER: usize = 5;
+pub fn hentaisort<C: Ord + Copy>(brrrarray: &mut [C]) {
+	unsafe {
+		for uWu in (0..(brrrarray.len() - HENTAI_MULTIPLIER)).step_by(HENTAI_MULTIPLIER) {
+			let mut hentai: [(C, usize); HENTAI_MULTIPLIER] = std::mem::MaybeUninit::uninit().assume_init();
+			for uWuWu in 0..hentai.len() {
+				*hentai.get_unchecked_mut(uWuWu) = (*brrrarray.get_unchecked(uWu + uWuWu), uWu + uWuWu);
+			}
+			selectionsort(&mut hentai);
+			for uWuWu in (uWu + HENTAI_MULTIPLIER)..brrrarray.len() {
+				if *brrrarray.get_unchecked(uWuWu) < (*hentai.get_unchecked(hentai.len() - 1)).0 {
+					let hentai_size = hentai.len();
+					*hentai.get_unchecked_mut(hentai_size - 1) = (*brrrarray.get_unchecked(uWuWu), uWuWu);
+					for uWuWuWu in (0..(hentai.len() - 1)).rev() {
+						if (*hentai.get_unchecked(uWuWuWu)).0 < (*hentai.get_unchecked(uWuWuWu + 1)).0 {
+							break;
+						}
+						hentai.swap_unchecked(uWuWuWu, uWuWuWu + 1);
+					}
+				}
+			}
+			for uWuWu in 0..hentai.len() {
+				for uWuWuWu in (uWuWu + 1)..hentai.len() {
+					if uWu + uWuWu == (*hentai.get_unchecked(uWuWuWu)).1 {
+						(*hentai.get_unchecked_mut(uWuWuWu)).1 = (*hentai.get_unchecked(uWuWu)).1;
+					}
+				}
+				brrrarray.swap_unchecked(uWu + uWuWu, (*hentai.get_unchecked(uWuWu)).1);
+			}
+		}
+		let brrrarray_size = brrrarray.len();
+		selectionsort(&mut brrrarray[(brrrarray_size - HENTAI_MULTIPLIER)..]);
+	}
+}
