@@ -91,7 +91,12 @@ pub fn duration_to_human(d: Duration) -> String {
 }
 
 pub fn verify_sorted<T: Ord + std::fmt::Debug>(array: &[T]) {
-	assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
+	if array.len() <= 1_000 {
+		assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
+	} else {
+		assert!(array.windows(2).all(|slice| slice[0] <= slice[1]),
+					"large array failing (size = {})", array.len());
+	}
 }
 
 pub fn fmin<T: PartialOrd>(f0: T, f1: T) -> T {
