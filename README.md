@@ -1,4 +1,4 @@
-# Sorting Benchmarks [Draft]
+# 1. Sorting Benchmarks [Draft]
 
 ![build status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/build/badge.svg)
 ![tests status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/tests/badge.svg)
@@ -7,23 +7,37 @@ Asymptotic complexity provides a lot of information about the behavior of an alg
 algorithms with the same complexity may perform very differently when it comes to physical hardware.
 The canonical example is mergesort vs. heapsort (which has poor cache performance).
 
-This project experimentally and rigorously benchmarks the hardware performance of various sorting
-algorithms.
+This project rigorously benchmarks the hardware performance of various sorting algorithms.
+
+The applications of work like this would be in dialing in the threshold for hybrid algorithms (i.e.
+at what point do you switch to insertionsort in introsort). At the moment this application only runs
+algorithms on various input sizes. I would like to add the functionality to systematically alter
+algorithm parameters.
+
+Then again, who cares about performance-quibbling with sorting algorithms 🤷‍♂️
 
 ## Table of Contents
 - [Results](#results)
 - [Benchmarking is Hard](#benchmarking-is-hard)
 - [Benchmarking Strategy](#benchmarking-strategy)
-- [Rust Performance](#rust-performance)
-- [Conclusion and Future Work](#conclusion-and-future-work)
+- [Findings](#findings)
+- [Appendix](#appendix)
+	- [Rust Performance](#rust-performance)
+	- [Future Work](#future-work)
 
-# Results
+# 2. Results
 
-# Benchmarking is Hard
+# 3. Benchmarking is Hard
 
-# Benchmarking Strategy
+# 4. Benchmarking Strategy
 
-# Rust Performance
+# 5. Findings
+
+write more about results here...
+
+# 6. Appendix
+
+## 6.1. Rust Performance
 
 In pursuit of safety, rust inserts a number of runtime checks into code. These include
 overflow/underflow checks (in debug mode) and array access boundary checks (in release and debug
@@ -96,19 +110,11 @@ the backlog to investigate the generated assembly and better what's going on her
 - There are other factors contributing to the code performance: e.g. the layout of the code in the
   final executable. (As described by Emery Berger).
 
-# Conclusion and Future Work
-
-write more about results here...
-
-The applications of work like this would be in dialing in the threshold for hybrid algorithms (i.e.
-at what point do you switch to insertionsort in introsort). At the moment this application only runs
-algorithms on various input sizes. I would like to add the functionality to systematically alter
-algorithm parameters.
-
-Then again, who cares about performance-quibbling sorting algorithms 🤷‍♂️
+## 6.2. Future Work
 
 Other Backlog:
 - Investigate generated assembly for the various insertion sorts.
 - Convert all rust algorithm implementations to use unsafe access.
 - Add hybrid sorting algorithms to test. Introsort and timsort are of interest.
 - Generate some graphs, not just tables.
+- Performance of hash table implementations
