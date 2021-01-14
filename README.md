@@ -19,7 +19,8 @@ Then again, who cares about performance-quibbling with sorting algorithms ðŸ¤·â€
 
 ## Table of Contents
 - [Benchmarking is Hard](#benchmarking-is-hard)
-- [Benchmarking Strategy](#benchmarking-strategy)
+	- [Benchmarking Strategy](#benchmarking-strategy)
+- [Algorithms Tested](#algorithms-tested)
 - [Results](#results)
 - [Findings](#findings)
 - [Appendix](#appendix)
@@ -61,6 +62,8 @@ Here are some of the factors contributing to benchmarking challenges:
 - OS task scheduling
 - CPU throttling
 
+## Benchmarking Strategy
+
 Here are some of the techniques used for mitigation:
 - Instead of running all insertion sorts size=1,000 then all selection sorts size=1,000 etc. and
   everything sequentially, every single individual run for every algorithm and test size is setup
@@ -76,7 +79,18 @@ block of memory to flush out the cache). However, this has been discarded becaus
 effective at addressing benchmarking issues, was very slow, and would be problematic in a
 multi-threaded context.
 
-# Benchmarking Strategy
+# Algorithms Tested
+
+We've implemented numerous algorithms, variations on algorithms, and hybrid algorithms to test.
+
+Algorithm list: bubblesort, cocktail-shaker sort, selectionsort, insertionsort, shellsort (many
+variations for different gap sequences), heapsort (top-down and bottom-up variations), mergesort,
+quicksort, radixsort.
+
+We've put effort into optimizing all these algorithms, however, there is room for improvement.
+Rust's builtin `sort_unstable` substantially out-performs all of our algorithms (with the exception
+of radixsort). It's ok, though, that our implementations aren't as fast as rust's builtin. We're
+just interested in how our imperfectly implemented algorithms compare to each other.
 
 # Results
 
