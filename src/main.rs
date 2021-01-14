@@ -19,68 +19,6 @@ mod utils;
 mod swap_unsafe;
 mod tests;
 
-//
-// This is the driver code for the algorithm benchmarking.
-//
-// Benchmarking is hard. As Emery Berger points out in his talk "Performance Matters"
-// (https://www.youtube.com/watch?v=r-TLSBdHe1A) there are a ton of complex hardware and software
-// factors that effect application performance. These include caching, branch prediction, random
-// layout of executable binary in memory.
-//
-// These factors are really hard to address. Berger presented a tool called Coz which is aimed at
-// application profiling and identifying targets for performance improvement. Berger also presented
-// a tool called stabilizer which modifies executable layout during runtime to eliminate the effect
-// of linker layout. The effects of code layout on performance are largely due to cache / branch
-// predictor conflict misses (if frequently used pieces of code happen to conflict). I don't know
-// how substantially this effects modern cpus (which tend to use associative caches), however, it
-// would explain some anomalies we've observed while working on this. I'd like to use stabilizer,
-// however, it is a compile-time plugin for C++ and I think getting it to work with Rust is outside
-// the scope of this project.
-//
-// Here's some of the issues we've encountered:
-//  - In 200 runs with mean runtime ~2,200ns, there was an outlier of 112,600ns. This result blew up
-//    the standard deviation calculation. This happened on a couple algorithms on a couple
-//    test-sizes a couple runs but there was no pattern to which algorithms or when it would happen.
-//    Because of the extreme nature of these outliers, the outliers are simply discarded.
-//  - We'd get really tight distributions (98% CI == +/- 0%) for the performance of some algorithms
-//    however, on the next execution of the program, even without code changes, we'd get
-//    substantially different results. The p-value of a 2-sample t-test for these instances is 0.
-//
-// Here are some of the factors contributing to benchmarking challenges:
-//  - Cache
-//  - Branch prediction
-//  - Linker layout
-//  - Os task scheduling
-//  - Locations of objects in the heap?
-//  - CPU throttling
-//
-// Here are some of the techniques used for mitigation:
-//  - Instead of running all insertion sorts size=1,000 then all selection sorts size=1,000 etc. and
-//    everything sequentially, every single individual algorithm call is setup and shuffled. Then a
-//    thread pool will begin performing benchmarks from the problem pool. This is an attempt to
-//    improve independence between each algorithm runs.
-//  - OS calls are made to request preferential scheduling. This should improve consistency.
-//  - Threads sleep between benchmark runs and only N_Cores / 2 threads are spun up. This is to help
-//    prevent thermal throttling and improve consistency of cache performance.
-//
-// We experimented with running a cache buster between every benchmark execution (writing to a
-// massive block of memory to flush out the cache). This has been discarded because it was not
-// highly effective at addressing benchmarking issues, was very slow, and would be problematic in a
-// multi-threaded context.
-//
-// Rust performs boundary checks on every array access. This causes a substantial performance hit
-// (and may effect branch prediction). The various sorting algorithms we've implemented are much
-// slower than rust's built-in sorting algorithms. This is partially due to unsafe array accesses
-// (rust's built-in algorithms use unsafe accesses to disable boundary checks), and we aim to have
-// everything implemented with unsafe accesses. Rust's sorting algorithms are also faster because
-// they are advanced hybrid sorting algorithms and have had much more work put into optimizing them
-// than we've put into optimizing ours. We hope to get our algorithms to have comparable performance
-// to rust's builtin, but it isn't strictly necessary for our program: we just want to look at how
-// algorithms compare to each other on real hardware.
-//
-// Note: The benchmarking takes a while to run, but it's thorough
-//
-
 // this flag will disable a lot of algorithms and reduce the number of tests performed
 // this is for use during development
 const TEST_MODE: bool = false;
