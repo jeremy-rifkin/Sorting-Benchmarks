@@ -63,6 +63,7 @@ pub fn mergesort<T: Ord + Copy + Default>(array: &mut [T]) {
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort(&mut array[..middle]);
 	mergesort(&mut array[middle..]);
 	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
@@ -81,6 +82,7 @@ fn mergesort_pre_alloc_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut 
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort_pre_alloc_r(&mut array[..middle], buffer);
 	mergesort_pre_alloc_r(&mut array[middle..], buffer);
 	merge(array, buffer);
@@ -98,6 +100,7 @@ fn mergesort_hybrid_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut Vec
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort_hybrid_r(&mut array[..middle], buffer);
 	mergesort_hybrid_r(&mut array[middle..], buffer);
 	merge(array, buffer);
@@ -140,6 +143,7 @@ pub fn mergesort_in_place_naive<T: Ord + Copy>(array: &mut [T]) {
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort_in_place_naive(&mut array[..middle]);
 	mergesort_in_place_naive(&mut array[middle..]);
 	merge_in_place_naive(array);
