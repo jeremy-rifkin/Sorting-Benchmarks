@@ -46,16 +46,11 @@ fn quicksort_random_step<T: Ord + Copy>(array: &mut [T], rng: &mut SmallRng) {
 }
 
 pub fn quicksort_hybrid<T: Ord + Copy>(array: &mut [T]) {
-	let mut rng = SmallRng::from_entropy();
-	quicksort_hybrid_step(array, &mut rng);
-}
-
-fn quicksort_hybrid_step<T: Ord + Copy>(array: &mut [T], rng: &mut SmallRng) {
 	if array.len() <= 32 {
 		algos::insertionsort(array);
 		return;
 	}
-	let pivot = partition_random(array, rng);
-	quicksort_hybrid_step(&mut array[..pivot], rng);
-	quicksort_hybrid_step(&mut array[(pivot + 1)..], rng);
+	let pivot = partition_end(array);
+	quicksort_hybrid(&mut array[..pivot]);
+	quicksort_hybrid(&mut array[(pivot + 1)..]);
 }
