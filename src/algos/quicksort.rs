@@ -1,6 +1,8 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
+
 use crate::algos;
+use crate::swap_unsafe::SwapUnsafe;
 
 pub fn partition_end<T: Ord + Copy>(slice: &mut [T]) -> usize {
 	unsafe {
@@ -8,11 +10,11 @@ pub fn partition_end<T: Ord + Copy>(slice: &mut [T]) -> usize {
 		let mut i = 0;
 		for j in 0..(slice.len() - 1) {
 			if *slice.get_unchecked(j) < pivot {
-				slice.swap(i, j);
+				slice.swap_unchecked(i, j);
 				i += 1;
 			}
 		}
-		slice.swap(i, slice.len() - 1);
+		slice.swap_unchecked(i, slice.len() - 1);
 		return i;
 	}
 }
@@ -27,7 +29,9 @@ pub fn quicksort_end<T: Ord + Copy>(array: &mut [T]) {
 }
 
 fn partition_random<T: Ord + Copy>(slice: &mut [T], rng: &mut SmallRng) -> usize {
-	slice.swap(rng.gen_range(0..slice.len()), slice.len() - 1);
+	unsafe {
+		slice.swap_unchecked(rng.gen_range(0..slice.len()), slice.len() - 1);
+	}
 	partition_end(slice)
 }
 
