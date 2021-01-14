@@ -6,6 +6,7 @@
 // most of these are courtesy of Robochu
 //
 
+use crate::algos::selectionsort;
 use crate::algos::insertionsort;
 use crate::algos::merge_single;
 use crate::swap_unsafe::SwapUnsafe;
@@ -114,6 +115,41 @@ pub fn selectionsort_minmax<T: Ord + Copy>(array: &mut [T]) {
 			array.swap_unchecked(i, min_index);
 			array.swap_unchecked(array.len() - 1 - i, max_index);
 		}
+	}
+}
+
+const MIN_COUNT: usize = 5;
+pub fn selectionsort_manymins<C: Ord + Copy>(array: &mut [C]) {
+	unsafe {
+		for i in (0..(array.len() - MIN_COUNT)).step_by(MIN_COUNT) {
+			let mut mins: [(C, usize); MIN_COUNT] = std::mem::MaybeUninit::uninit().assume_init();
+			for j in 0..mins.len() {
+				*mins.get_unchecked_mut(j) = (*array.get_unchecked(i + j), i + j);
+			}
+			selectionsort(&mut mins);
+			for j in (i + MIN_COUNT)..array.len() {
+				if *array.get_unchecked(j) < (*mins.get_unchecked(mins.len() - 1)).0 {
+					let mins_len = mins.len();
+					*mins.get_unchecked_mut(mins_len - 1) = (*array.get_unchecked(j), j);
+					for k in (0..(mins.len() - 1)).rev() {
+						if (*mins.get_unchecked(k)).0 < (*mins.get_unchecked(k + 1)).0 {
+							break;
+						}
+						mins.swap_unchecked(k, k + 1);
+					}
+				}
+			}
+			for j in 0..mins.len() {
+				for k in (j + 1)..mins.len() {
+					if i + j == (*mins.get_unchecked(k)).1 {
+						(*mins.get_unchecked_mut(k)).1 = (*mins.get_unchecked(j)).1;
+					}
+				}
+				array.swap_unchecked(i + j, (*mins.get_unchecked(j)).1);
+			}
+		}
+		let array_len = array.len();
+		selectionsort(&mut array[(array_len - MIN_COUNT)..]);
 	}
 }
 
