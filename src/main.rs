@@ -16,7 +16,7 @@ mod algos;
 mod odd_algos;
 mod statistics;
 mod utils;
-mod swap_unsafe;
+mod unchecked_tools;
 mod tests;
 
 // this flag will disable a lot of algorithms and reduce the number of tests performed

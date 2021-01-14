@@ -1,4 +1,4 @@
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 // node's children are at 2i + 1 and 2i + 2
 // parent is at (i - 1) / 2

@@ -1,4 +1,4 @@
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 pub fn cocktail_shaker<T: Ord>(array: &mut[T]) {
 	unsafe {

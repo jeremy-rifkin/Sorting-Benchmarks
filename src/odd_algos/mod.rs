@@ -8,7 +8,7 @@
 
 use crate::algos::insertionsort;
 use crate::algos::merge_single;
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 use std::collections::BTreeMap;
 

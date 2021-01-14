@@ -1,5 +1,5 @@
 use crate::algos;
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 // TODO: get rid of
 pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {

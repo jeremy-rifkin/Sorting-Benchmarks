@@ -1,4 +1,4 @@
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 // TODO: explore optimizations of these implementations further
 
