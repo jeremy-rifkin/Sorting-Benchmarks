@@ -213,6 +213,7 @@ impl BenchmarkManager {
 				sfn!(algos::quicksort_end::<i32>,            "O(n log n)"),
 				sfn!(algos::quicksort_random::<i32>,         "O(n log n)"),
 				sfn!(algos::quicksort_hybrid::<i32>,         "O(n log n)"),
+				sfn!(algos::introsort::<i32>,                "O(n log n)"),
 				sfn!(algos::radixsort,                       "O(n)"),
 				sfn!(algos::rustsort::<i32>,                 "O(n log n)"),
 				sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)"),

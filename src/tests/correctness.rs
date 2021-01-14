@@ -231,6 +231,11 @@ fn test_quicksort_hybrid() {
 }
 
 #[test]
+fn test_introsort() {
+	test_sorting_algorithm(algos::introsort);
+}
+
+#[test]
 fn test_radixsort() {
 	test_sorting_algorithm(algos::radixsort);
 }

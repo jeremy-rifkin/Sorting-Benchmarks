@@ -2,7 +2,7 @@ use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use crate::algos;
 
-fn partition_end<T: Ord + Copy>(slice: &mut [T]) -> usize {
+pub fn partition_end<T: Ord + Copy>(slice: &mut [T]) -> usize {
 	unsafe {
 		let pivot = *slice.get_unchecked(slice.len() - 1);
 		let mut i = 0;
