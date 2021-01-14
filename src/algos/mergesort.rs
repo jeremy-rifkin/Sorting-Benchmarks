@@ -7,7 +7,8 @@ pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
 		let mut i = 0;
 		let mut j = middle;
 		let mut k = 0;
-		let mut merged: Vec<T> = vec![slice[0]; slice.len()];
+		let mut merged: Vec<T> = Vec::with_capacity(slice.len());
+		merged.set_len(slice.len());
 		while i < middle && j < slice.len() {
 			*merged.get_unchecked_mut(k) = if *slice.get_unchecked(i) < *slice.get_unchecked(j)
 				{i += 1; *slice.get_unchecked(i - 1)} else {j += 1; *slice.get_unchecked(j - 1)};
@@ -64,12 +65,14 @@ pub fn mergesort<T: Ord + Copy + Default>(array: &mut [T]) {
 	let middle = array.len() / 2;
 	mergesort(&mut array[..middle]);
 	mergesort(&mut array[middle..]);
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
+	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
+	unsafe { buffer.set_len(array.len()); }
 	merge(array, &mut buffer);
 }
 
 pub fn mergesort_pre_alloc<T: Ord + Copy + Default>(array: &mut [T]) {
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
+	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
+	unsafe { buffer.set_len(array.len()); }
 	mergesort_pre_alloc_r(array, &mut buffer);
 }
 
@@ -84,7 +87,8 @@ fn mergesort_pre_alloc_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut 
 }
 
 pub fn mergesort_hybrid<T: Ord + Copy + Default>(array: &mut [T]) {
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
+	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
+	unsafe { buffer.set_len(array.len()); }
 	mergesort_hybrid_r(array, &mut buffer);
 }
 
