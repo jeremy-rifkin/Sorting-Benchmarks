@@ -24,12 +24,21 @@ fn test_duration_to_human() {
 fn test_verify_sorted() {
 	utils::verify_sorted(&[1,2,3,4,5]);
 	utils::verify_sorted(&[1,1,1,1,1]);
+	utils::verify_sorted(&vec![0;10_000]);
 }
 
 #[test]
 #[should_panic]
 fn test_verify_unsorted() {
 	utils::verify_sorted(&[1,1,1,1,0]);
+}
+
+#[test]
+#[should_panic]
+fn test_verify_unsorted_large() {
+	let mut v = vec![0;10_000];
+	v.push(-1);
+	utils::verify_sorted(&v);
 }
 
 #[test]
