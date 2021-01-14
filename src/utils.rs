@@ -70,19 +70,19 @@ pub fn commafy(mut num: usize) -> String {
 pub fn duration_to_human(d: Duration) -> String {
 	let ns = d.as_nanos() as f64;
 	if ns < 1e3 {
-		format!("{:.2}ns", ns)
+		format!("{:_>6.2}ns", ns)
 	} else if ns < 1e6 {
-		format!("{:.2}μs", ns / 1e3)
+		format!("{:_>6.2}μs", ns / 1e3)
 	} else if ns < 1e9 {
-		format!("{:.2}ms", ns / 1e6)
+		format!("{:_>6.2}ms", ns / 1e6)
 	} else {
 		let seconds = ns / 1e9;
 		if seconds < 60.0 {
-			format!("{:.2}s", seconds)
+			format!("{:_>5.2}s", seconds)
 		} else if seconds < 60.0 * 60.0 {
-			format!("{}m {:.2}s", (seconds / 60.0).floor(), seconds % 60.0)
+			format!("{:_>2}m {:_>5.2}s", (seconds / 60.0).floor(), seconds % 60.0)
 		} else {
-			format!("{}h {}m {:.2}s",
+			format!("{}h {:_>2}m {:_>5.2}s",
 				(seconds / (60.0 * 60.0)).floor(),
 				((seconds % (60.0 * 60.0)) / 60.0).floor(),
 				(seconds % (60.0 * 60.0)) % 60.0)
@@ -91,7 +91,12 @@ pub fn duration_to_human(d: Duration) -> String {
 }
 
 pub fn verify_sorted<T: Ord + std::fmt::Debug>(array: &[T]) {
-	assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
+	if array.len() <= 1_000 {
+		assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
+	} else {
+		assert!(array.windows(2).all(|slice| slice[0] <= slice[1]),
+					"large array failing (size = {})", array.len());
+	}
 }
 
 pub fn fmin<T: PartialOrd>(f0: T, f1: T) -> T {

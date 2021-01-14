@@ -1,10 +1,12 @@
 #[allow(dead_code)]
 
+use std::collections::HashMap;
+
 use rand::rngs::SmallRng;
 use rand::{RngCore, SeedableRng};
 
 use crate::algos;
-use crate::utils::*;
+use crate::utils;
 
 const TEST_ARRAY_SIZE: usize = 1000;
 const FIXED_SEED: u64 = 0xB000000; // spooky
@@ -33,25 +35,64 @@ fn create_random_array(size: usize, rng: &mut SmallRng) -> Vec<i32> {
 	return array;
 }
 
+fn array_descriptor(array: &Vec<i32>) -> HashMap<i32, i32> {
+	let mut map = HashMap::with_capacity(array.len());
+	for key in array {
+		if let Option::Some(val) = map.get_mut(key) {
+			*val += 1;
+		} else {
+			map.insert(*key, 1);
+		}
+	}
+	map
+}
+
+fn verify_sorted(array: &Vec<i32>, array_orig: HashMap<i32, i32>) {
+	// verify the array is sorted
+	utils::verify_sorted(&array);
+	// verify all the items from the original array are in the final array
+	// note: could do this faster, but doesn't matter
+	let array_sorted = array_descriptor(&array);
+	assert_eq!(array_orig.len(), array_sorted.len(), "error: array did not properly sort");
+	for (key, _) in array_orig.iter() {
+		assert_eq!(array_orig[&key], array_sorted[&key], "error: array did not properly sort");
+	}
+}
+
 fn test_sorting_algorithm_size(mut algorithm: impl FnMut(&mut [i32]), size: usize) {
 	let mut array = create_sorted_array(size);
+	let array_orig = array_descriptor(&array);
 	algorithm(&mut array);
-	verify_sorted(&array);
+	verify_sorted(&array, array_orig);
 
 	let mut array = create_reversed_array(size);
+	let array_orig = array_descriptor(&array);
 	algorithm(&mut array);
-	verify_sorted(&array);
+	verify_sorted(&array, array_orig);
 
 	let mut rng = SmallRng::seed_from_u64(FIXED_SEED);
 	for _i in 0..5 {
 		let mut array = create_random_array(size, &mut rng);
+		let array_orig = array_descriptor(&array);
 		algorithm(&mut array);
-		verify_sorted(&array);
+		verify_sorted(&array, array_orig);
 	}
 }
 
 fn test_sorting_algorithm(algorithm: impl FnMut(&mut [i32])) {
 	test_sorting_algorithm_size(algorithm, TEST_ARRAY_SIZE);
+}
+
+fn not_a_sort(array: &mut [i32]) {
+	for item in array {
+		*item = 1;
+	}
+}
+
+#[test]
+#[should_panic]
+fn test_not_a_sort() {
+	test_sorting_algorithm(not_a_sort);
 }
 
 #[test]
@@ -151,14 +192,14 @@ fn test_mergesort_in_place() {
 
 #[test]
 fn test_mergesort_adaptive() {
-	test_sorting_algorithm(algos::mergesort::mergesort_adaptive);
+	test_sorting_algorithm(odd_algos::mergesort_adaptive);
 }
 
 #[test]
 fn test_mergesort_double_hybrid() {
-	test_sorting_algorithm(algos::mergesort::mergesort_double_hybrid);
+	test_sorting_algorithm(odd_algos::mergesort_double_hybrid);
 	// coverage for an edge case:
-	test_sorting_algorithm_size(algos::mergesort::mergesort_double_hybrid, 10_000);
+	test_sorting_algorithm_size(odd_algos::mergesort_double_hybrid, 10_000);
 }
 
 #[test]
@@ -192,13 +233,29 @@ fn test_cpp_std_sort() {
 //}
 
 // ---------------------  experimental algos  ---------------------
-use crate::exp_algos;
+use crate::odd_algos;
+
+#[test]
+fn test_btreesort() {
+	test_sorting_algorithm(odd_algos::btreesort);
+}
+
+#[test]
+fn test_selectionsort_cocktail() {
+	test_sorting_algorithm(odd_algos::selectionsort_cocktail);
+}
+
+#[test]
+fn test_selectionsort_minmax() {
+	test_sorting_algorithm(odd_algos::selectionsort_minmax);
+}
+
 #[test]
 fn test_weird() {
-	test_sorting_algorithm(exp_algos::weird);
+	test_sorting_algorithm(odd_algos::weird);
 }
 
 #[test]
 fn test_alternative() {
-	test_sorting_algorithm(exp_algos::shellsort_alternative_ciura);
+	test_sorting_algorithm(odd_algos::shellsort_alternative_ciura);
 }

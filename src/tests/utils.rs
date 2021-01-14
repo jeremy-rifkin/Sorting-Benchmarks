@@ -12,12 +12,12 @@ fn test_commafy() {
 #[test]
 fn test_duration_to_human() {
 	assert_eq!(utils::duration_to_human(Duration::from_nanos(500)), "500.00ns");
-	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500)), "1.50μs");
-	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500_000)), "1.50ms");
-	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500_000_000)), "1.50s");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500)), "__1.50μs");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500_000)), "__1.50ms");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(1_500_000_000)), "_1.50s");
 	assert_eq!(utils::duration_to_human(Duration::from_nanos(30 * 1_000_000_000)), "30.00s");
-	assert_eq!(utils::duration_to_human(Duration::from_nanos(90 * 1_000_000_000)), "1m 30.00s");
-	assert_eq!(utils::duration_to_human(Duration::from_nanos(95 * 60 * 1_000_000_000 + 500_000_000)), "1h 35m 0.50s");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(90 * 1_000_000_000)), "_1m 30.00s");
+	assert_eq!(utils::duration_to_human(Duration::from_nanos(95 * 60 * 1_000_000_000 + 500_000_000)), "1h 35m _0.50s");
 }
 
 #[test]
