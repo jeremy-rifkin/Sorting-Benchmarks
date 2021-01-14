@@ -57,13 +57,13 @@ fn merge<T: Ord + Copy>(slice: &mut [T], buffer: &mut Vec<T>) {
 	}
 }
 
-pub fn mergesort_repeated_alloc<T: Ord + Copy + Default>(array: &mut [T]) {
+pub fn mergesort<T: Ord + Copy + Default>(array: &mut [T]) {
 	if array.len() <= 1 {
 		return;
 	}
 	let middle = array.len() / 2;
-	mergesort_repeated_alloc(&mut array[..middle]);
-	mergesort_repeated_alloc(&mut array[middle..]);
+	mergesort(&mut array[..middle]);
+	mergesort(&mut array[middle..]);
 	let mut buffer: Vec<T> = vec![T::default(); array.len()];
 	merge(array, &mut buffer);
 }

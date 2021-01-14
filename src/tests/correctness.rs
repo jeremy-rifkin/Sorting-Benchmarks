@@ -179,8 +179,8 @@ fn test_heapsort_bottom_up() {
 }
 
 #[test]
-fn test_mergesort_repeated_alloc() {
-	test_sorting_algorithm(algos::mergesort::mergesort_repeated_alloc);
+fn test_mergesort() {
+	test_sorting_algorithm(algos::mergesort::mergesort);
 }
 
 #[test]
