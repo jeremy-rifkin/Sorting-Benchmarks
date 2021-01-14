@@ -4,19 +4,21 @@ extern "C" {
 	void c_insertionsort(int32_t*, int);
 }
 
-void swap(int32_t* array, int i, int j) {
-	int32_t tmp = array[j];
-	array[j] = array[i];
-	array[i] = tmp;
-}
+//void swap(int32_t* array, int i, int j) {
+//	int32_t tmp = array[j];
+//	array[j] = array[i];
+//	array[i] = tmp;
+//}
 
 void c_insertionsort(int32_t* array, int size) {
 	for(int i = 1; i < size; i++) {
 		int j = i;
-		while(j > 0 && array[j - 1] > array[j]) {
-			swap(array, j, j - 1);
+		int32_t v = array[j];
+		while(j > 0 && array[j - 1] > v) {
+			array[j] = array[j - 1];
 			j--;
 		}
+		array[j] = v;
 	}
 }
 
