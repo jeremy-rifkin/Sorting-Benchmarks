@@ -35,6 +35,14 @@ fn create_random_array(size: usize, rng: &mut SmallRng) -> Vec<i32> {
 	return array;
 }
 
+fn create_random_array_with_duplicates(size: usize, rng: &mut SmallRng) -> Vec<i32> {
+	let mut array = vec![0; size];
+	for i in 0..size {
+		array[i] = (rng.next_u32() as i32).abs() % (TEST_ARRAY_SIZE as i32 / 2);
+	}
+	return array;
+}
+
 fn array_descriptor(array: &Vec<i32>) -> HashMap<i32, i32> {
 	let mut map = HashMap::with_capacity(array.len());
 	for key in array {
@@ -77,6 +85,11 @@ fn test_sorting_algorithm_size(mut algorithm: impl FnMut(&mut [i32]), size: usiz
 		algorithm(&mut array);
 		verify_sorted(&array, array_orig);
 	}
+
+	let mut array = create_random_array_with_duplicates(size, &mut rng);
+	let array_orig = array_descriptor(&array);
+	algorithm(&mut array);
+	verify_sorted(&array, array_orig);
 }
 
 fn test_sorting_algorithm(algorithm: impl FnMut(&mut [i32])) {
