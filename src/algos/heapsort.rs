@@ -30,18 +30,19 @@ fn sink<T: Ord>(array: &mut[T], i: usize, heap_size: usize) {
 	}
 }
 
-pub fn heapsort_top_down<T: Ord>(array: &mut[T]) {
+fn swim<T: Ord>(array: &mut[T], mut i: usize) {
 	unsafe {
-		// build heap
-		for mut i in 0..array.len() {
-			// swim
-			while i > 0 && array.get_unchecked((i - 1) / 2) < array.get_unchecked(i) {
-				array.swap_unchecked(i, (i - 1) / 2);
-				i = (i - 1) / 2;
-			}
+		while i > 0 && array.get_unchecked((i - 1) / 2) < array.get_unchecked(i) {
+			array.swap_unchecked(i, (i - 1) / 2);
+			i = (i - 1) / 2;
 		}
+	}
+}
+
+fn extract_from_heap<T: Ord>(array: &mut[T]) {
+	unsafe {
 		// extraction
-		for i in (0..array.len()).rev() {
+		for i in (1..array.len()).rev() {
 			// take max
 			array.swap_unchecked(0, i);
 			// sink
@@ -50,18 +51,20 @@ pub fn heapsort_top_down<T: Ord>(array: &mut[T]) {
 	}
 }
 
-pub fn heapsort_bottom_up<T: Ord>(array: &mut[T]) {
-	unsafe {
-		// build heap
-		for i in (0..(array.len() / 2)).rev() {
-			sink(array, i, array.len());
-		}
-		// extraction
-		for i in (0..array.len()).rev() {
-			// take max
-			array.swap_unchecked(0, i);
-			// sink
-			sink(array, 0, i);
-		}
+pub fn heapsort_top_down<T: Ord>(array: &mut[T]) {
+	// build heap
+	for i in 0..array.len() {
+		swim(array, i);
 	}
+	// extract sorted array
+	extract_from_heap(array);
+}
+
+pub fn heapsort_bottom_up<T: Ord>(array: &mut[T]) {
+	// build heap
+	for i in (0..array.len() / 2).rev() {
+		sink(array, i, array.len());
+	}
+	// extract sorted array
+	extract_from_heap(array);
 }
