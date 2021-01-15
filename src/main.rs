@@ -184,13 +184,13 @@ impl MPMessage {
 }
 
 struct BenchmarkManager {
-	algorithms: Vec<(fn(&mut [i32]), String, &'static str)>,
+	algorithms: Vec<(Option<fn(&mut [i32])>, String, &'static str)>,
 	results_table: Vec<Vec<Option<BenchmarkResult>>>
 }
 
 impl BenchmarkManager {
 	pub fn new() -> BenchmarkManager {
-		let algorithms: Vec<(fn(&mut [i32]), String, &str)> =
+		let algorithms: Vec<(Option<fn(&mut [i32])>, String, &str)> =
 		if !TEST_MODE {
 			 vec![
 				sfn!(algos::bubblesort::<i32>,               "O(n^2)"),
@@ -219,6 +219,7 @@ impl BenchmarkManager {
 				sfn!(algos::rustsort_unsable::<i32>,         "O(n log n)"),
 				sfn!(algos::cpp_std_sort,                    "O(n log n)"),
 				// odd algos and unimportant variations will be tacked on at the end
+				(Option::None, String::from(""), ""), // table separator
 				sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
 				sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 				sfn!(odd_algos::selectionsort_cocktail::<i32>,"O(n^2)"),
@@ -297,6 +298,9 @@ impl BenchmarkManager {
 		let mut jobs = Vec::new();
 		for size_i in 0..TEST_SIZES.len() {
 			for (i, a) in self.algorithms.iter().enumerate() {
+				if a.0.is_none() {
+					continue;
+				}
 				if TEST_SIZES[size_i] <= *LIMIT_TABLE.get(&a.2).unwrap_or(&usize::MAX) {
 					for n in 0..N_TESTS {
 						jobs.push((i, size_i, n));
@@ -322,6 +326,9 @@ impl BenchmarkManager {
 	}
 	fn compute_results(&mut self, results: Vec<Vec<Vec<u64>>>) {
 		for algorithm_i in 0..self.algorithms.len() {
+			if self.algorithms[algorithm_i].0.is_none() {
+				continue;
+			}
 			for size_i in 0..TEST_SIZES.len() {
 				// compute stats
 				// We had an issue with a few benchmarks randomly having massive standard deviations
@@ -412,7 +419,7 @@ impl BenchmarkManager {
 					if received.m_type == MType::WorkAssignment {
 						let job = received.get_work_message();
 						let result = BenchmarkManager::run_bench(
-							self_ptr.algorithms[job.algorithm_i].0,
+							self_ptr.algorithms[job.algorithm_i].0.unwrap(),
 							TEST_SIZES[job.size],
 							job.test_i
 						);
@@ -548,7 +555,7 @@ impl BenchmarkManager {
 							utils::commafy(TEST_SIZES[job.1]));
 			}
 			let result = BenchmarkManager::run_bench(
-				self.algorithms[job.0].0,
+				self.algorithms[job.0].0.unwrap(),
 				TEST_SIZES[job.1],
 				job.2
 			);
@@ -565,6 +572,7 @@ impl BenchmarkManager {
 			let mut min_mean = Option::<f64>::None;
 			let mut min_result = Option::<usize>::None;
 			for j in 0..self.algorithms.len() {
+				if self.algorithms[j].0.is_none() { continue; }
 				if filter(&self.algorithms[j].1, self.algorithms[j].2) {
 					let ar = &self.results_table[j][i];
 					if ar.is_some() {
@@ -581,6 +589,7 @@ impl BenchmarkManager {
 				self.results_table[min_j][i].as_mut().unwrap().is_fastest = true;
 				let min = self.results_table[min_j][i].clone().unwrap();
 				for j in 0..self.algorithms.len() {
+					if self.algorithms[j].0.is_none() { continue; }
 					if filter(&self.algorithms[j].1, self.algorithms[j].2) {
 						if self.results_table[j][i].is_some() {
 							let ar = self.results_table[j][i].as_mut().unwrap();
@@ -599,15 +608,19 @@ impl BenchmarkManager {
 								.map(|x| Cell::new(&x)).collect()));
 		for (i, a) in self.algorithms.iter().enumerate() {
 			if filter(&a.1, a.2) {
-				let mut row = vec![Cell::new(&a.1)];
-				for result in self.results_table[i].iter() {
-					if result.is_none() {
-						row.push(Cell::new("-"));
-					} else {
-						row.push(Cell::new(&format!("{}", result.as_ref().unwrap())));
+				if self.algorithms[i].0.is_some() {
+					let mut row = vec![Cell::new(&a.1)];
+					for result in self.results_table[i].iter() {
+						if result.is_none() {
+							row.push(Cell::new("-"));
+						} else {
+							row.push(Cell::new(&format!("{}", result.as_ref().unwrap())));
+						}
 					}
+					table.add_row(Row::new(row));
+				} else {
+					table.add_row(Row::new(vec![Cell::new("--").style_spec("c"); TEST_SIZES.len() + 1]));
 				}
-				table.add_row(Row::new(row));
 			}
 		}
 		table.printstd();
