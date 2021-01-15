@@ -184,11 +184,6 @@ fn test_mergesort() {
 }
 
 #[test]
-fn test_mergesort_pre_alloc() {
-	test_sorting_algorithm(algos::mergesort::mergesort_pre_alloc);
-}
-
-#[test]
 fn test_mergesort_hybrid() {
 	test_sorting_algorithm(algos::mergesort::mergesort_hybrid);
 }
@@ -236,6 +231,11 @@ fn test_introsort() {
 }
 
 #[test]
+fn test_timsort() {
+	test_sorting_algorithm(algos::timsort);
+}
+
+#[test]
 fn test_radixsort() {
 	test_sorting_algorithm(algos::radixsort);
 }
@@ -266,6 +266,11 @@ fn test_selectionsort_cocktail() {
 #[test]
 fn test_selectionsort_minmax() {
 	test_sorting_algorithm(odd_algos::selectionsort_minmax);
+}
+
+#[test]
+fn test_selectionsort_manymins() {
+	test_sorting_algorithm(odd_algos::selectionsort_manymins);
 }
 
 #[test]
