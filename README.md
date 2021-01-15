@@ -167,7 +167,8 @@ details).
 
 Straightforward insertionsort substantially out-performs shellsort on small arrays (10 - 100) and
 shellsort doesn't begin to shine until moderately sized arrays (somewhere between 100 and 1000). Of
-the sequences we tested, Sedgewick's sequence published in 1982 ($4^k + 3 \cdot 2^{k - 1} + 1$)
+the sequences we tested, Sedgewick's sequence published in 1982
+(<img src="https://render.githubusercontent.com/render/math?math=4%5Ek%20%2B%203%20%5Ccdot%202%5E%7Bk%20-%201%7D%20%2B%201">) <!-- 4^k + 3 \cdot 2^{k - 1} + 1 -->
 consistently out-performed other sequences by a large margin.
 
 ## Future Work
@@ -176,8 +177,9 @@ consistently out-performed other sequences by a large margin.
 
 As mentioned in the introduction, at the moment we run algorithms on a series of input sizes. I
 would like to later add functionality to systematically alter algorithm parameters. For example,
-testing various cutoffs for the value of shellsort's $h_{max}$ or finding the best threshold for a
-hybrid algorithm to switch to insertionsort.
+testing various cutoffs for the value of shellsort's
+<img src="https://render.githubusercontent.com/render/math?math=h_{max}"> or finding the best
+threshold for a hybrid algorithm to switch to insertionsort.
 
 ### Test methodology
 
@@ -187,13 +189,17 @@ arrays.
 
 ### Shellsort
 
-Unless the wikipedia page's table indicated an upper bound for the value of $h$, we set $h_{max}$ to
-half the array's length.
+Unless the wikipedia page's table indicated an upper bound for the value of
+<img src="https://render.githubusercontent.com/render/math?math=h">, we set
+<img src="https://render.githubusercontent.com/render/math?math=h_{max}"> to half the array's
+length.
 
 I am not sure the effect of this on performance. On one hand the shell sequences are exponential so
-any performance hit by setting $h_{max}$ too large should be relatively insignificant, however,
-cache performance during an iteration with a large $h$ value may be a significant factor. It's on
-the backlog to explore this more.
+any performance hit by setting
+<img src="https://render.githubusercontent.com/render/math?math=h_{max}"> too large should be
+relatively insignificant, however, cache performance during an iteration with a large
+<img src="https://render.githubusercontent.com/render/math?math=h"> value may be a significant
+factor. It's on the backlog to explore this more.
 
 ### Our implementations
 
