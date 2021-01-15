@@ -222,7 +222,6 @@ impl BenchmarkManager {
 				// odd algos and unimportant variations will be tacked on at the end
 				(Option::None, String::from(""), ""), // table separator
 				sfn!(algos::insertionsort_boundary_checked::<i32>,"O(n^2)"),
-				sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 				sfn!(odd_algos::selectionsort_cocktail::<i32>,"O(n^2)"),
 				sfn!(odd_algos::selectionsort_minmax::<i32>, "O(n^2)"),
 				sfn!(odd_algos::selectionsort_manymins::<i32>,"O(n^2)"),
@@ -242,7 +241,6 @@ impl BenchmarkManager {
 				sfn!(algos::insertionsort_c,                 "O(n^2)"),
 				sfn!(algos::shellsort_knuth::<i32>,          "O(n^(4/3))"),
 				sfn!(algos::shellsort_sedgewick82::<i32>,    "O(n^(4/3))"),
-				sfn!(algos::mergesort_pre_alloc::<i32>,      "O(n log n)"),
 				sfn!(algos::mergesort_hybrid::<i32>,         "O(n log n)"),
 				sfn!(algos::mergesort_in_place::<i32>,       "O(n log n)"),
 				sfn!(algos::heapsort_top_down::<i32>,        "O(n log n)"),

@@ -59,32 +59,19 @@ fn merge<T: Ord + Copy>(slice: &mut [T], buffer: &mut Vec<T>) {
 }
 
 pub fn mergesort<T: Ord + Copy>(array: &mut [T]) {
+	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
+	unsafe { buffer.set_len(array.len()); }
+	mergesort_step(array, &mut buffer);
+}
+
+fn mergesort_step<T: Ord + Copy>(array: &mut [T], buffer: &mut Vec<T>) {
 	if array.len() <= 1 {
 		return;
 	}
 	let middle = array.len() / 2;
 	// these array slices will have their boundary checks optimized out
-	mergesort(&mut array[..middle]);
-	mergesort(&mut array[middle..]);
-	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
-	unsafe { buffer.set_len(array.len()); }
-	merge(array, &mut buffer);
-}
-
-pub fn mergesort_pre_alloc<T: Ord + Copy>(array: &mut [T]) {
-	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
-	unsafe { buffer.set_len(array.len()); }
-	mergesort_pre_alloc_r(array, &mut buffer);
-}
-
-fn mergesort_pre_alloc_r<T: Ord + Copy>(array: &mut [T], buffer: &mut Vec<T>) {
-	if array.len() <= 1 {
-		return;
-	}
-	let middle = array.len() / 2;
-	// these array slices will have their boundary checks optimized out
-	mergesort_pre_alloc_r(&mut array[..middle], buffer);
-	mergesort_pre_alloc_r(&mut array[middle..], buffer);
+	mergesort_step(&mut array[..middle], buffer);
+	mergesort_step(&mut array[middle..], buffer);
 	merge(array, buffer);
 }
 
