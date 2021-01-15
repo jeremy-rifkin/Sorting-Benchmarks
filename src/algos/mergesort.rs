@@ -1,5 +1,5 @@
 use crate::algos;
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 // TODO: get rid of
 pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
@@ -7,7 +7,8 @@ pub fn merge_single<T: Ord + Copy>(slice: &mut [T], middle: usize) {
 		let mut i = 0;
 		let mut j = middle;
 		let mut k = 0;
-		let mut merged: Vec<T> = vec![slice[0]; slice.len()];
+		let mut merged: Vec<T> = Vec::with_capacity(slice.len());
+		merged.set_len(slice.len());
 		while i < middle && j < slice.len() {
 			*merged.get_unchecked_mut(k) = if *slice.get_unchecked(i) < *slice.get_unchecked(j)
 				{i += 1; *slice.get_unchecked(i - 1)} else {j += 1; *slice.get_unchecked(j - 1)};
@@ -62,14 +63,17 @@ pub fn mergesort<T: Ord + Copy + Default>(array: &mut [T]) {
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort(&mut array[..middle]);
 	mergesort(&mut array[middle..]);
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
+	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
+	unsafe { buffer.set_len(array.len()); }
 	merge(array, &mut buffer);
 }
 
 pub fn mergesort_pre_alloc<T: Ord + Copy + Default>(array: &mut [T]) {
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
+	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
+	unsafe { buffer.set_len(array.len()); }
 	mergesort_pre_alloc_r(array, &mut buffer);
 }
 
@@ -78,13 +82,15 @@ fn mergesort_pre_alloc_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut 
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort_pre_alloc_r(&mut array[..middle], buffer);
 	mergesort_pre_alloc_r(&mut array[middle..], buffer);
 	merge(array, buffer);
 }
 
 pub fn mergesort_hybrid<T: Ord + Copy + Default>(array: &mut [T]) {
-	let mut buffer: Vec<T> = vec![T::default(); array.len()];
+	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
+	unsafe { buffer.set_len(array.len()); }
 	mergesort_hybrid_r(array, &mut buffer);
 }
 
@@ -94,6 +100,7 @@ fn mergesort_hybrid_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut Vec
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort_hybrid_r(&mut array[..middle], buffer);
 	mergesort_hybrid_r(&mut array[middle..], buffer);
 	merge(array, buffer);
@@ -136,6 +143,7 @@ pub fn mergesort_in_place_naive<T: Ord + Copy>(array: &mut [T]) {
 		return;
 	}
 	let middle = array.len() / 2;
+	// these array slices will have their boundary checks optimized out
 	mergesort_in_place_naive(&mut array[..middle]);
 	mergesort_in_place_naive(&mut array[middle..]);
 	merge_in_place_naive(array);

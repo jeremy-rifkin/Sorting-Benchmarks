@@ -1,4 +1,4 @@
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 pub fn selectionsort<T: Ord>(array: &mut [T]) {
 	unsafe {

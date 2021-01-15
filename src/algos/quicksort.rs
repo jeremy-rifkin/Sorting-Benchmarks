@@ -2,7 +2,7 @@ use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
 use crate::algos;
-use crate::swap_unsafe::SwapUnsafe;
+use crate::unchecked_tools::SliceUnchecked;
 
 pub fn partition_end<T: Ord + Copy>(slice: &mut [T]) -> usize {
 	unsafe {
@@ -24,8 +24,11 @@ pub fn quicksort_end<T: Ord + Copy>(array: &mut [T]) {
 		return;
 	}
 	let pivot = partition_end(array);
-	quicksort_end(&mut array[..pivot]);
-	quicksort_end(&mut array[(pivot + 1)..]);
+	// safety: 0 <= pivot < array.len()
+	// TODO: no performance difference observed on x86, slight diff on arm
+	let (l, r) = unsafe { array.split_at_unchecked_mut_excl(pivot) };
+	quicksort_end(l);
+	quicksort_end(r);
 }
 
 fn partition_random<T: Ord + Copy>(slice: &mut [T], rng: &mut SmallRng) -> usize {
@@ -44,9 +47,12 @@ fn quicksort_random_step<T: Ord + Copy>(array: &mut [T], rng: &mut SmallRng) {
 	if array.len() <= 1 {
 		return;
 	}
+	// safety: 0 <= pivot < array.len()
+	// TODO: no performance difference observed on x86, slight diff on arm
 	let pivot = partition_random(array, rng);
-	quicksort_random_step(&mut array[..pivot], rng);
-	quicksort_random_step(&mut array[(pivot + 1)..], rng);
+	let (l, r) = unsafe { array.split_at_unchecked_mut_excl(pivot) };
+	quicksort_random_step(l, rng);
+	quicksort_random_step(r, rng);
 }
 
 pub fn quicksort_hybrid<T: Ord + Copy>(array: &mut [T]) {
@@ -54,7 +60,10 @@ pub fn quicksort_hybrid<T: Ord + Copy>(array: &mut [T]) {
 		algos::insertionsort(array);
 		return;
 	}
+	// safety: 0 <= pivot < array.len()
+	// TODO: no performance difference observed on x86, slight diff on arm
 	let pivot = partition_end(array);
-	quicksort_hybrid(&mut array[..pivot]);
-	quicksort_hybrid(&mut array[(pivot + 1)..]);
+	let (l, r) = unsafe { array.split_at_unchecked_mut_excl(pivot) };
+	quicksort_hybrid(l);
+	quicksort_hybrid(r);
 }

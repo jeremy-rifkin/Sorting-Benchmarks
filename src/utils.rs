@@ -5,7 +5,7 @@ use std::time::Duration;
 // output: tuple (fn pointer, fn name, string)
 #[macro_export] macro_rules! sfn {
 	($f:expr, $c:literal) => {
-		($f, (&Regex::new("::<.+>$").unwrap().replace(stringify!($f), "")).to_string(), $c)
+		(Option::Some($f), (&Regex::new("::<.+>$").unwrap().replace(stringify!($f), "")).to_string(), $c)
 	};
 }
 
