@@ -1,4 +1,4 @@
-# Sorting Benchmarks [Draft]
+# Sorting Benchmarks
 
 ![build status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/build/badge.svg)
 ![tests status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/tests/badge.svg)
@@ -22,10 +22,10 @@ Then again, who cares about performance-quibbling with sorting algorithms 🤷�
 	- [Benchmarking Strategy](#benchmarking-strategy)
 - [Algorithms Tested](#algorithms-tested)
 - [Results](#results)
-- [Findings](#findings)
+	- [Findings](#findings)
+	- [Future Work](#future-work)
 - [Appendix](#appendix)
 	- [Rust Performance](#rust-performance)
-	- [More work](#more-work)
 
 # Benchmarking is Hard
 
@@ -69,8 +69,8 @@ Here are some of the techniques used for mitigation:
   everything sequentially, every single individual run for every algorithm and test size is setup
   and randomly shuffled. Then a thread pool begins performing benchmarks from the problem pool.
   This is an attempt to improve independence between individual runs.
-- ~~OS calls are made to request preferential scheduling. This should improve consistency.~~
-  Currently not performed for lack of effect.
+- ~~Preferential scheduling is requested from the os. This should improve consistency.~~
+  Currently not done due to lack of effect.
 - Threads sleep briefly between benchmark runs and only N_Cores / 2 threads are spun up. This is to
   help prevent thermal throttling and improve consistency of cache performance.
 
@@ -83,9 +83,10 @@ multi-threaded context.
 
 We've implemented numerous algorithms, variations on algorithms, and hybrid algorithms to test.
 
-Algorithm list: bubblesort, cocktail-shaker sort, selectionsort, insertionsort, shellsort (many
-variations for different gap sequences), heapsort (top-down and bottom-up variations), mergesort,
-quicksort, radixsort.
+Algorithm list: bubblesort, cocktail-shaker sort, selectionsort, insertionsort, shellsort, heapsort,
+mergesort, quicksort, introsort, timsort, and radixsort. Some of these have many variations: for
+example heapsort has top-down and bottom-up implementations and shellsort has several variations for
+various gap sequences.
 
 We've put effort into optimizing all these algorithms, however, there is room for improvement.
 Rust's builtin `sort_unstable` substantially out-performs all of our algorithms (with the exception
@@ -94,23 +95,124 @@ just interested in how our imperfectly implemented algorithms compare to each ot
 
 # Results
 
-# Findings
+We've ran tests on four different systems:
+- Intel 4th gen i7, Ubuntu, gcc & rust llvm
+- Intel 10th gen i7, Wandows, mingw-64 & rust llvm
+- ARM11, Raspbian, gcc & rust llvm (raspberry pi zero)
+- ARMv7, Raspbian, gcc & rust llvm (raspberry pi 3 B+)
 
-write more about results here...
+The raw results can be found [here](results/).
+
+## Findings
+
+### Heapsort
+
+```
+Heap sorts:
++---------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
+|                           | 10                         | 100                        | 1,000                      | 10,000                     | 100,000                    | 1,000,000                    |
++---------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
+| algos::heapsort_bottom_up | 0.00085 ± 0.00005 (6%) s * | 0.00458 ± 0.00011 (2%) s * | 0.06013 ± 0.00274 (5%) s * | 0.68644 ± 0.01199 (2%) s * | 8.78124 ± 0.12426 (1%) s * | 115.52760 ± 2.13309 (2%) s * |
++---------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
+| algos::heapsort_top_down  | 0.00086 ± 0.00005 (6%) s * | 0.00458 ± 0.00013 (3%) s * | 0.06315 ± 0.00322 (5%) s   | 0.71443 ± 0.01505 (2%)   * | 8.86477 ± 0.13188 (1%) s * | 119.27459 ± 3.09581 (3%) s * |
++---------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+------------------------------+
+└ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
+```
+(performance on **Intel 10th gen i7, Wandows, mingw-64 & rust llvm**)
+
+Bottom-up heap construction is often touted as the "best" way to go about heap construction. This is
+because asymptotically, bottom-up construction can be done in `O(n)` time while top-down requires
+`O(n log n)` time. On all systems tested and almost every input size we observed no statistical
+difference between the performance of the two heap construction techniques. We never observed a
+substantial difference between the two methods (i.e. >5% diff) and in one case where there was
+statistical difference, top-down construction out-performed bottom-up construction (test_size =
+`100,000` on arm11).
+
+*Conclusion:* The only advantage of using bottom-up construction over top-down construction is that
+it requires only a sink method and not a swim method.
+
+Why isn't there a performance difference here? The asymptotic complexity says there should be! Two
+hypothesis:
+- The runtime of heapsort is dominated by the sort-down step.
+- Any performance improvement by bottom-up construction is completely dwarfed by heapsort's terrible
+  cache performance.
+
+### Shellsort
+
+```
+Shell sorts:
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+|                                        | 10                         | 100                        | 1,000                      | 10,000                      | 100,000                     | 1,000,000                    |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+| algos::insertionsort                   | 0.00066 ± 0.00005 (7%) s * | 0.00268 ± 0.00009 (4%) s * | 0.11508 ± 0.00514 (4%)     | 8.67249 ± 0.12000 (1%)      | -                           | -                            |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+| algos::shellsort_knuth                 | 0.00166 ± 0.00007 (4%)     | 0.00424 ± 0.00012 (3%)     | 0.05342 ± 0.00263 (5%) s   | 0.70777 ± 0.01299 (2%)      | 9.59906 ± 0.12913 (1%)      | 122.95488 ± 2.42832 (2%)     |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+| algos::shellsort_sedgewick82           | 0.00079 ± 0.00006 (8%)     | 0.00326 ± 0.00008 (2%)     | 0.05015 ± 0.00244 (5%) s * | 0.65840 ± 0.01350 (2%) s *  | 8.24177 ± 0.09567 (1%) s *  | 101.51249 ± 1.61576 (2%) s * |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+| algos::shellsort_sedgewick86           | 0.00083 ± 0.00005 (6%)     | 0.00360 ± 0.00010 (3%)     | 0.05477 ± 0.00268 (5%) s   | 0.70330 ± 0.01358 (2%)      | 9.27153 ± 0.12953 (1%)      | 116.72985 ± 2.52380 (2%)     |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+| algos::shellsort_gonnet_baeza          | 0.00077 ± 0.00006 (7%)     | 0.00366 ± 0.00009 (2%)     | 0.06059 ± 0.00329 (5%)     | 0.77024 ± 0.01354 (2%)      | 10.01428 ± 0.12831 (1%)     | 125.30122 ± 3.15616 (3%)     |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+| algos::shellsort_tokuda                | 0.00224 ± 0.00009 (4%)     | 0.00568 ± 0.00014 (3%)     | 0.06359 ± 0.00351 (6%)     | 0.75365 ± 0.01407 (2%)      | 9.53897 ± 0.10989 (1%)      | 118.84112 ± 2.55185 (2%)     |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+| algos::shellsort_ciura                 | 0.00077 ± 0.00005 (6%)     | 0.00358 ± 0.00011 (3%)     | 0.05681 ± 0.00279 (5%)     | 0.71683 ± 0.01398 (2%)      | 9.35106 ± 0.12323 (1%)      | 112.16648 ± 2.40597 (2%)     |
++----------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+-----------------------------+------------------------------+
+└ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
+```
+(performance on **Intel 10th gen i7, Wandows, mingw-64 & rust llvm**)
+
+We tested numerous different gap sequences with shellsort (see the [wikipedia page][shell_wiki] for
+details).
+
+Straightforward insertionsort substantially out-performs shellsort on small arrays (10 - 100) and
+shellsort doesn't begin to shine until moderately sized arrays (somewhere between 100 and 1000). Of
+the sequences we tested, Sedgewick's sequence published in 1982 ($4^k + 3 \cdot 2^{k - 1} + 1$)
+consistently out-performed other sequences by a large margin.
+
+## Future Work
+
+### Other algorithm performance factors
+
+As mentioned in the introduction, at the moment we run algorithms on a series of input sizes. I
+would like to later add functionality to systematically alter algorithm parameters. For example,
+testing various cutoffs for the value of shellsort's $h_{max}$ or finding the best threshold for a
+hybrid algorithm to switch to insertionsort.
+
+### Test methodology
+
+We benchmarked using completely random arrays. This is not always the case in a real program:
+sometimes an array may be almost sorted. We did not attempt to generate random "almost sorted"
+arrays.
+
+### Shellsort
+
+Unless the wikipedia page's table indicated an upper bound for the value of $h$, we set $h_{max}$ to
+half the array's length.
+
+I am not sure the effect of this on performance. On one hand the shell sequences are exponential so
+any performance hit by setting $h_{max}$ too large should be relatively insignificant, however,
+cache performance during an iteration with a large $h$ value may be a significant factor. It's on
+the backlog to explore this more.
+
+### Our implementations
+
+We've put work into optimizing our implementations, however, they aren't perfect. One of the notable
+areas for improvement os in our quicksort implementations, where our fastest quicksort is still
+slower than our fastest mergesort. I'm still puzzled how rust's buildin unstable sort is able to
+out-perform our implementations by such a significant margin.
+
+### General Backlog
+- Investigate generated assembly for the various insertion sorts.
+- Convert all rust algorithm implementations to use unsafe access.
+- Generate some graphs, not just tables.
+- Performance effect of different h_max values.
+- Performance of hash table implementations.
+- Test on arduinos and other embedded systems.
 
 # Appendix
 
 ## Rust Performance
-
-// Rust performs boundary checks on every array access. This causes a substantial performance hit
-// (and may effect branch prediction). The various sorting algorithms we've implemented are much
-// slower than rust's built-in sorting algorithms. This is partially due to unsafe array accesses
-// (rust's built-in algorithms use unsafe accesses to disable boundary checks), and we aim to have
-// everything implemented with unsafe accesses. Rust's sorting algorithms are also faster because
-// they are advanced hybrid sorting algorithms and have had much more work put into optimizing them
-// than we've put into optimizing ours. We hope to get our algorithms to have comparable performance
-// to rust's builtin, but it isn't strictly necessary for our program: we just want to look at how
-// algorithms compare to each other on real hardware.
 
 In pursuit of safety, rust inserts a number of runtime checks into code. These include
 overflow/underflow checks (in debug mode) and array access boundary checks (in release and debug
@@ -128,84 +230,79 @@ implementation in pure C.
 **Intel 10th gen i7, Wandows, mingw-64 & rust llvm**
 ```
 Insertion sorts:
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-|                               | 10                         | 100                        | 1,000                      | 10,000                      | 100,000 |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort          | 0.00088 ± 0.00004 (5%) s * | 0.00434 ± 0.00007 (2%)     | 0.28608 ± 0.00142 (0%)     | 28.71438 ± 0.12226 (0%)     | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort_unsafe   | 0.00086 ± 0.00004 (5%) s * | 0.00294 ± 0.00009 (3%) s * | 0.13345 ± 0.00090 (1%) s * | 13.41843 ± 0.08444 (1%) s * | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort_unsafe_2 | 0.00089 ± 0.00005 (5%) s * | 0.00290 ± 0.00008 (3%) s * | 0.13480 ± 0.00075 (1%) s * | 13.90153 ± 0.11604 (1%)   * | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort_c        | 0.00104 ± 0.00005 (5%)     | 0.00395 ± 0.00009 (2%)     | 0.14623 ± 0.00065 (0%)     | 13.73471 ± 0.11514 (1%)   * | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+|                                       | 10                         | 100                        | 1,000                      | 10,000                      | 100,000 | 1,000,000 |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+| algos::insertionsort                  | 0.00066 ± 0.00005 (7%) s * | 0.00268 ± 0.00009 (4%) s * | 0.11508 ± 0.00514 (4%) s * | 8.67249 ± 0.12000 (1%)   *  | -       | -         |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+| algos::insertionsort_c                | 0.00080 ± 0.00004 (5%)     | 0.00302 ± 0.00009 (3%)     | 0.11136 ± 0.00574 (5%) s * | 8.28161 ± 0.10286 (1%) s *  | -       | -         |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+| algos::insertionsort_boundary_checked | 0.00067 ± 0.00006 (9%) s * | 0.00307 ± 0.00013 (4%)     | 0.16885 ± 0.00659 (4%)     | 14.69654 ± 0.18541 (1%)     | -       | -         |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
 └ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
 ```
 
 **Intel 4th gen i7, Ubuntu, gcc & rust llvm**
 ```
 Insertion sorts:
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-|                               | 10                         | 100                        | 1,000                      | 10,000                      | 100,000 |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort          | 0.00040 ± 0.00002 (5%)     | 0.00564 ± 0.00013 (2%)     | 0.43633 ± 0.00937 (2%)     | 37.29179 ± 0.10475 (0%)     | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort_unsafe   | 0.00037 ± 0.00002 (4%) s * | 0.00307 ± 0.00007 (2%) s * | 0.20391 ± 0.00541 (3%) s * | 17.69103 ± 0.06510 (0%)     | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort_unsafe_2 | 0.00036 ± 0.00002 (4%) s * | 0.00312 ± 0.00008 (3%) s * | 0.20370 ± 0.00500 (2%) s * | 17.62089 ± 0.04694 (0%)     | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
-| algos::insertionsort_c        | 0.00058 ± 0.00002 (4%)     | 0.00436 ± 0.00010 (2%)     | 0.19990 ± 0.00462 (2%) s * | 15.86337 ± 0.05298 (0%) s * | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+|                                       | 10                         | 100                        | 1,000                      | 10,000                      | 100,000 | 1,000,000 |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+| algos::insertionsort                  | 0.00044 ± 0.00003 (6%)     | 0.00308 ± 0.00008 (3%) s * | 0.14240 ± 0.00459 (3%)     | 11.92179 ± 0.26666 (2%)     | -       | -         |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+| algos::insertionsort_c                | 0.00059 ± 0.00003 (4%)     | 0.00329 ± 0.00008 (3%)     | 0.11799 ± 0.00348 (3%) s * | 8.81012 ± 0.04275 (0%) s *  | -       | -         |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
+| algos::insertionsort_boundary_checked | 0.00037 ± 0.00002 (6%) s * | 0.00327 ± 0.00008 (3%)     | 0.17175 ± 0.00533 (3%)     | 13.41049 ± 0.04915 (0%)     | -       | -         |
++---------------------------------------+----------------------------+----------------------------+----------------------------+-----------------------------+---------+-----------+
 └ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
 ```
 
-**ARM1176, Raspbian, gcc & rust llvm**
+**ARM11, Raspbian, gcc & rust llvm (raspberry pi zero)**
 ```
 Insertion sorts:
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
-|                               | 10                         | 100                        | 1,000                      | 10,000                       | 100,000 |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
-| algos::insertionsort          | 0.00942 ± 0.00019 (2%)     | 0.04698 ± 0.00040 (1%)     | 3.56845 ± 0.01596 (0%)     | -                            | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
-| algos::insertionsort_unsafe   | 0.00900 ± 0.00000 (0%) s * | 0.04166 ± 0.00032 (1%)     | 3.06175 ± 0.01298 (0%)     | -                            | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
-| algos::insertionsort_unsafe_2 | 0.00892 ± 0.00016 (2%) s * | 0.04151 ± 0.00035 (1%)     | 3.06357 ± 0.01368 (0%)     | -                            | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
-| algos::insertionsort_c        | 0.01000 ± 0.00000 (0%)     | 0.03345 ± 0.00025 (1%) s * | 2.06649 ± 0.01074 (1%) s * | 255.24971 ± 1.00602 (0%) s * | -       |
-+-------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
++---------------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+|                                       | 10                         | 100                        | 1,000                      | 10,000                       | 100,000 |
++---------------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+| algos::insertionsort                  | 0.00509 ± 0.00022 (4%) s * | 0.02846 ± 0.00054 (2%) s * | 2.04610 ± 0.01179 (1%)     | 249.47356 ± 0.97038 (0%)     | -       |
++---------------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+| algos::insertionsort_c                | 0.00702 ± 0.00025 (4%)     | 0.02864 ± 0.00060 (2%) s * | 1.67797 ± 0.00801 (0%) s * | 216.95768 ± 0.75235 (0%) s * | -       |
++---------------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
+| algos::insertionsort_boundary_checked | 0.00521 ± 0.00022 (4%) s * | 0.03423 ± 0.00066 (2%)     | 2.56015 ± 0.01676 (1%)     | 300.33886 ± 1.02493 (0%)     | -       |
++---------------------------------------+----------------------------+----------------------------+----------------------------+------------------------------+---------+
 └ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
 ```
 
-**Conclusion:** Using unchecked access, we're able to achieve performance on-par (and sometimes
-faster) than pure C.
+**ARMv7, Raspbian, gcc & rust llvm (raspberry pi 3 B+)**
+```
+Insertion sorts:
++---------------------------------------+-----------------------------+----------------------------+----------------------------+------------------------------+---------+-----------+
+|                                       | 10                          | 100                        | 1,000                      | 10,000                       | 100,000 | 1,000,000 |
++---------------------------------------+-----------------------------+----------------------------+----------------------------+------------------------------+---------+-----------+
+| algos::insertionsort                  | 0.00132 ± 0.00014 (10%) s * | 0.01625 ± 0.00034 (2%)     | 1.40078 ± 0.02127 (2%)     | 147.26608 ± 0.36139 (0%)     | -       | -         |
++---------------------------------------+-----------------------------+----------------------------+----------------------------+------------------------------+---------+-----------+
+| algos::insertionsort_c                | 0.00224 ± 0.00015 (7%)      | 0.01261 ± 0.00028 (2%) s * | 0.80043 ± 0.01146 (1%) s * | 81.94229 ± 0.24065 (0%) s *  | -       | -         |
++---------------------------------------+-----------------------------+----------------------------+----------------------------+------------------------------+---------+-----------+
+| algos::insertionsort_boundary_checked | 0.00146 ± 0.00014 (9%) s    | 0.01474 ± 0.00030 (2%)     | 1.22301 ± 0.01775 (1%)     | 126.31177 ± 0.26702 (0%)     | -       | -         |
++---------------------------------------+-----------------------------+----------------------------+----------------------------+------------------------------+---------+-----------+
+└ Values in ms; 98% confidence interval displayed; s = statistically equal to fastest; * = within 5% of fastest
+```
 
-I'm not sure what allows the unchecked rust implementation to out-perform the C implementation. It's
-on the backlog to investigate the generated assembly and better understand what's going on here.
-Hypotheses:
-- `rustc` optimizes better than `gcc`.
-- C is actually faster but there's an overhead to offset due to how the method call works (e.g. due
-  to linkage and lack of inlining). This hypothesis would explain the results from `Intel 4th gen
-  i7, Ubuntu, gcc & rust llvm` where the rust code out-performs C but only to a point.
-- There are [other factors](#benchmarking-is-hard) contributing to the code performance: e.g. the
-  layout of the code in the final executable.
+With small arrays (10 - 100 elements), an insertionsort implementation in native rust using
+unchecked array accesses is able to perform very well (on-par or better than C). However, the C
+implementation out-performs rust substantially on larger arrays.
 
-## More work
+Why does rust out-perform on tiny arrays but under-perform on larger arrays? I think it may have to
+do with how the function call works with foreign linkage (e.g. lack of inlining or other
+optimizations on the call itself).
 
-General Backlog:
-- Investigate generated assembly for the various insertion sorts.
-- Convert all rust algorithm implementations to use unsafe access.
-- Add hybrid sorting algorithms to test. Introsort and timsort are of interest.
-- Generate some graphs, not just tables.
-- Performance of hash table implementations
-
+It's on the backlog to investigate the generated assembly better to understand what's going on here.
 
 ["Performance Matters"]: https://www.youtube.com/watch?v=r-TLSBdHe1A
 [Coz]: https://github.com/plasma-umass/coz
 [Stabilizer]: https://github.com/ccurtsinger/stabilizer
+[shell_wiki]: https://en.wikipedia.org/wiki/Shellsort#Gap_sequences
 
 [1]: https://stackoverflow.com/questions/20333547/cache-specifications-for-intel-core-i7
 [2]: https://stackoverflow.com/questions/49092541/which-cache-mapping-technique-is-used-in-intel-core-i7-processor
 [3]: https://en.wikichip.org/wiki/amd/microarchitectures/zen
 [4]: https://en.wikichip.org/wiki/amd/microarchitectures/zen_2
-
-
