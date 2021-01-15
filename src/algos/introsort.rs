@@ -1,6 +1,7 @@
 use crate::algos::heapsort;
 use crate::algos::insertionsort;
 use crate::algos::quicksort;
+use crate::unchecked_tools::SliceUnchecked;
 
 pub fn introsort<T: Ord + Copy>(array: &mut [T]) {
 	// max_depth = floor(log_2(array.len())) * 2
@@ -15,10 +16,12 @@ pub fn introsort_step<T: Ord + Copy>(array: &mut [T], max_depth_intermediate: us
 	if array.len() <= 32 {
 		insertionsort(array);
 	} else if max_depth_intermediate == 0 {
-		heapsort::heapsort_top_down(array);
+		heapsort::heapsort_bottom_up(array);
 	} else {
 		let pivot = quicksort::partition_end(array);
-		introsort_step(&mut array[..pivot], max_depth_intermediate >> 1);
-		introsort_step(&mut array[(pivot + 1)..], max_depth_intermediate >> 1);
+		// safety: 0 <= pivot < array.len()
+		let (l, r) = unsafe { array.split_at_unchecked_mut_excl(pivot) };
+		introsort_step(l, max_depth_intermediate >> 1);
+		introsort_step(r, max_depth_intermediate >> 1);
 	}
 }
