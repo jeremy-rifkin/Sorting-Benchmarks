@@ -3,3 +3,4 @@ Cargo.lock
 object
 target
 scratch
+*.sh
