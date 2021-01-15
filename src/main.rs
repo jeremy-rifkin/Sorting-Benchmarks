@@ -664,10 +664,15 @@ fn main() {
 	let runtime = start.elapsed();
 
 	println!("Bubble sorts:");
-	manager.print(|n, _| n.contains("bubble") || n.contains("cocktail"));
+	manager.print(|n, _| (n.contains("bubble") || n.contains("cocktail"))
+						&& !n.contains("selection"));
 	println!();
 
 	println!("Insertion sorts:");
+	manager.print(|n, _| n.contains("insertion"));
+	println!();
+
+	println!("Insertion and selection sorts:");
 	manager.print(|n, _| n.contains("insertion")
 						|| n.contains("selection")
 						|| n.contains("cocktail"));
