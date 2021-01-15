@@ -10,7 +10,7 @@ pub fn introsort<T: Ord + Copy>(array: &mut [T]) {
 	introsort_step(array, (num_bits::<usize>() - array.len().leading_zeros() as usize - 1) * 2);
 }
 
-fn introsort_step<T: Ord + Copy>(mut array: &mut [T], r_height: usize) {
+fn introsort_step<T: Ord + Copy>(mut array: &mut [T], mut r_height: usize) {
 	// loop creates something along the lines of a tail-call recursion
 	// TODO: no performance difference observed on x86 :/
 	loop {
@@ -31,6 +31,7 @@ fn introsort_step<T: Ord + Copy>(mut array: &mut [T], r_height: usize) {
 				introsort_step(r, r_height - 1);
 				array = l;
 			}
+			r_height -= 1;
 		}
 	}
 }
