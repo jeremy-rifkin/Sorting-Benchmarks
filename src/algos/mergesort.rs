@@ -58,7 +58,7 @@ fn merge<T: Ord + Copy>(slice: &mut [T], buffer: &mut Vec<T>) {
 	}
 }
 
-pub fn mergesort<T: Ord + Copy + Default>(array: &mut [T]) {
+pub fn mergesort<T: Ord + Copy>(array: &mut [T]) {
 	if array.len() <= 1 {
 		return;
 	}
@@ -71,13 +71,13 @@ pub fn mergesort<T: Ord + Copy + Default>(array: &mut [T]) {
 	merge(array, &mut buffer);
 }
 
-pub fn mergesort_pre_alloc<T: Ord + Copy + Default>(array: &mut [T]) {
+pub fn mergesort_pre_alloc<T: Ord + Copy>(array: &mut [T]) {
 	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
 	unsafe { buffer.set_len(array.len()); }
 	mergesort_pre_alloc_r(array, &mut buffer);
 }
 
-fn mergesort_pre_alloc_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut Vec<T>) {
+fn mergesort_pre_alloc_r<T: Ord + Copy>(array: &mut [T], buffer: &mut Vec<T>) {
 	if array.len() <= 1 {
 		return;
 	}
@@ -88,13 +88,13 @@ fn mergesort_pre_alloc_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut 
 	merge(array, buffer);
 }
 
-pub fn mergesort_hybrid<T: Ord + Copy + Default>(array: &mut [T]) {
+pub fn mergesort_hybrid<T: Ord + Copy>(array: &mut [T]) {
 	let mut buffer: Vec<T> = Vec::with_capacity(array.len());
 	unsafe { buffer.set_len(array.len()); }
 	mergesort_hybrid_r(array, &mut buffer);
 }
 
-fn mergesort_hybrid_r<T: Ord + Copy + Default>(array: &mut [T], buffer: &mut Vec<T>) {
+fn mergesort_hybrid_r<T: Ord + Copy>(array: &mut [T], buffer: &mut Vec<T>) {
 	if array.len() <= 32 {
 		algos::insertionsort(array);
 		return;
