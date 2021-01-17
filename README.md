@@ -2,6 +2,7 @@
 
 ![build status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/build/badge.svg)
 ![tests status](https://github.com/jeremy-rifkin/Sorting-Benchmarks/workflows/tests/badge.svg)
+[![codecov](https://codecov.io/gh/jeremy-rifkin/Sorting-Benchmarks/branch/master/graph/badge.svg?token=GIMYUWGT2H)](https://codecov.io/gh/jeremy-rifkin/Sorting-Benchmarks)
 
 Asymptotic complexity provides a lot of information about the behavior of an algorithm, however,
 algorithms with the same complexity may perform very differently when it comes to physical hardware.
@@ -64,15 +65,17 @@ Here are some of the factors contributing to benchmarking challenges:
 
 ## Benchmarking Strategy
 
-Here are some of the techniques used for mitigation:
-- Instead of running all insertion sorts size=1,000 then all selection sorts size=1,000 etc. and
-  everything sequentially, every single individual run for every algorithm and test size is setup
-  and randomly shuffled. Then a thread pool begins performing benchmarks from the problem pool.
-  This is an attempt to improve independence between individual runs.
-- ~~Preferential scheduling is requested from the os. This should improve consistency.~~
-  Currently not done due to lack of effect.
-- Threads sleep briefly between benchmark runs and only N_Cores / 2 threads are spun up. This is to
-  help prevent thermal throttling and improve consistency of cache performance.
+Algorithms are tested on a series of array sizes. For each array and each test size, 200 tests with
+randomly generated arrays are performed. Every algorithm is tested with the same 200 randomly
+generated arrays.
+
+Instead of running all insertion sorts size=1,000 then all selection sorts size=1,000 etc. and
+everything sequentially, every single individual run for every algorithm and test size is setup and
+randomly shuffled. Then a thread pool begins performing benchmarks from the problem pool. This is an
+attempt to improve independence between individual runs.
+
+Threads sleep briefly between benchmark runs and only N_Cores / 2 threads are spun up. This is to
+help prevent thermal throttling and improve consistency of cache performance.
 
 We experimented with running a cache buster between every benchmark execution (writing to a massive
 block of memory to flush out the cache). However, this has been discarded because it was not highly
