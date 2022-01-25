@@ -1,6 +1,4 @@
-use crate::algos::heapsort;
-use crate::algos::insertionsort;
-use crate::algos::quicksort;
+use crate::algos;
 use crate::unchecked_tools::SliceUnchecked;
 
 const fn num_bits<T>() -> usize { std::mem::size_of::<T>() * 8 }
@@ -14,14 +12,14 @@ fn introsort_step<T: Ord + Copy>(mut array: &mut [T], mut r_height: usize) {
 	// loop creates something along the lines of a tail-call recursion
 	// TODO: no performance difference observed on x86 :/
 	loop {
-		if array.len() <= 32 {
-			insertionsort(array);
+		if array.len() <= algos::INSERTIONSORT_THRESHOLD {
+			algos::insertionsort(array);
 			return;
 		} else if r_height == 0 {
-			heapsort::heapsort_bottom_up(array);
+			algos::heapsort::heapsort_bottom_up_optimized(array);
 			return;
 		} else {
-			let pivot = quicksort::partition_end(array);
+			let pivot = algos::quicksort::partition_end(array);
 			// safety: 0 <= pivot < array.len()
 			let (l, r) = unsafe { array.split_at_unchecked_mut_excl(pivot) };
 			if l.len() < r.len() {

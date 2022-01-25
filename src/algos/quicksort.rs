@@ -56,7 +56,7 @@ fn quicksort_random_step<T: Ord + Copy>(array: &mut [T], rng: &mut SmallRng) {
 }
 
 pub fn quicksort_hybrid<T: Ord + Copy>(array: &mut [T]) {
-	if array.len() <= 32 {
+	if array.len() <= algos::INSERTIONSORT_THRESHOLD {
 		algos::insertionsort(array);
 		return;
 	}

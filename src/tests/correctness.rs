@@ -62,9 +62,7 @@ fn verify_sorted(array: &Vec<i32>, array_orig: HashMap<i32, i32>) {
 	// note: could do this faster, but doesn't matter
 	let array_sorted = array_descriptor(&array);
 	assert_eq!(array_orig.len(), array_sorted.len(), "error: array did not properly sort");
-	for (key, _) in array_orig.iter() {
-		assert_eq!(array_orig[&key], array_sorted[&key], "error: array did not properly sort");
-	}
+	assert_eq!(array_orig, array_sorted, "error: array did not properly sort");
 }
 
 fn test_sorting_algorithm_size(mut algorithm: impl FnMut(&mut [i32]), size: usize) {

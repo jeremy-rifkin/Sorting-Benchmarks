@@ -92,7 +92,7 @@ pub fn duration_to_human(d: Duration) -> String {
 
 pub fn verify_sorted<T: Ord + std::fmt::Debug>(array: &[T]) {
 	if array.len() <= 1_000 {
-		assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "{:?}", array);
+		assert!(array.windows(2).all(|slice| slice[0] <= slice[1]), "improperly sorted: {:?}", array);
 	} else {
 		assert!(array.windows(2).all(|slice| slice[0] <= slice[1]),
 					"large array failing (size = {})", array.len());

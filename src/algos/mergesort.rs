@@ -82,7 +82,7 @@ pub fn mergesort_hybrid<T: Ord + Copy>(array: &mut [T]) {
 }
 
 fn mergesort_hybrid_r<T: Ord + Copy>(array: &mut [T], buffer: &mut Vec<T>) {
-	if array.len() <= 32 {
+	if array.len() <= algos::INSERTIONSORT_THRESHOLD {
 		algos::insertionsort(array);
 		return;
 	}

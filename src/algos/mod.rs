@@ -34,6 +34,8 @@ pub use shellsort::*;
 pub mod timsort;
 pub use timsort::*;
 
+pub const INSERTIONSORT_THRESHOLD: usize = 32;
+
 // It would be elegant to just pace a rust slice to the c code. Turns out it's pretty
 // straightforward to do too. It would allow the c functions to match the signature of the other
 // sorting algorithms. Unfortunately, we can't just plug in the c functions into the rust code

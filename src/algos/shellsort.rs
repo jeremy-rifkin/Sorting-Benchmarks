@@ -2,18 +2,22 @@ use crate::unchecked_tools::SliceUnchecked;
 
 // TODO: explore optimizations of these implementations further
 
-fn insertion_gap<T: Ord>(array: &mut [T], gap: usize) {
+fn insertion_gap<T: Ord + Copy>(array: &mut [T], gap: usize) {
 	unsafe {
 		for mut i in gap..array.len() {
-			while i >= gap && array.get_unchecked(i - gap) > array.get_unchecked(i) {
-				array.swap_unchecked(i, i - gap);
-				i -= gap;
+			let v = *array.get_unchecked(i);
+			if *array.get_unchecked(i - gap) > v {
+				while i >= gap && *array.get_unchecked(i - gap) > v {
+					*array.get_unchecked_mut(i) = *array.get_unchecked(i - gap);
+					i -= gap;
+				}
+				*array.get_unchecked_mut(i) = v;
 			}
 		}
 	}
 }
 
-pub fn shell_sequence<T: Ord>(slice: &mut [T], gap_sequence: &[usize]) {
+pub fn shell_sequence<T: Ord + Copy>(slice: &mut [T], gap_sequence: &[usize]) {
 	for gap in gap_sequence {
 		if *gap < slice.len() {
 			insertion_gap(slice, *gap);
@@ -21,7 +25,7 @@ pub fn shell_sequence<T: Ord>(slice: &mut [T], gap_sequence: &[usize]) {
 	}
 }
 
-pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, max: usize) {
+pub fn shell_function<T: Ord + Copy>(slice: &mut [T], gap_function: fn(u32) -> usize, max: usize) {
 	// shell functions are typically ""almost" geometric sequences" so this step should take
 	// logarithmic time and be fairly inconsequential
 	let mut i = 0;
@@ -33,13 +37,13 @@ pub fn shell_function<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, m
 	}
 }
 
-pub fn shell_function_known<T: Ord>(slice: &mut [T], gap_function: fn(u32) -> usize, k0: u32, kf: u32) {
+pub fn shell_function_known<T: Ord + Copy>(slice: &mut [T], gap_function: fn(u32) -> usize, k0: u32, kf: u32) {
 	for j in (kf..=k0).rev() {
 		insertion_gap(slice, gap_function(j));
 	}
 }
 
-pub fn shell_function_recursive<T: Ord>(slice: &mut [T], gap_function: fn(usize) -> usize, h0: usize, hmin: usize) {
+pub fn shell_function_recursive<T: Ord + Copy>(slice: &mut [T], gap_function: fn(usize) -> usize, h0: usize, hmin: usize) {
 	let mut h = h0;
 	while h >= hmin {
 		insertion_gap(slice, h);
@@ -51,7 +55,7 @@ pub fn shell_function_recursive<T: Ord>(slice: &mut [T], gap_function: fn(usize)
 	}
 }
 
-pub fn shellsort_knuth<T: Ord>(slice: &mut [T]) {
+pub fn shellsort_knuth<T: Ord + Copy>(slice: &mut [T]) {
 	// (3^k - 1) / 2 not exceeding ceil(n / 3)
 	shell_function_known(
 		slice,
@@ -61,7 +65,7 @@ pub fn shellsort_knuth<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-pub fn shellsort_sedgewick82<T: Ord>(slice: &mut [T]) {
+pub fn shellsort_sedgewick82<T: Ord + Copy>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
 		slice,
@@ -70,7 +74,7 @@ pub fn shellsort_sedgewick82<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-pub fn shellsort_sedgewick86<T: Ord>(slice: &mut [T]) {
+pub fn shellsort_sedgewick86<T: Ord + Copy>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
 		slice,
@@ -81,7 +85,7 @@ pub fn shellsort_sedgewick86<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-pub fn shellsort_gonnet_baeza<T: Ord>(slice: &mut [T]) {
+pub fn shellsort_gonnet_baeza<T: Ord + Copy>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function_recursive(
 		slice,
@@ -91,7 +95,7 @@ pub fn shellsort_gonnet_baeza<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-pub fn shellsort_tokuda<T: Ord>(slice: &mut [T]) {
+pub fn shellsort_tokuda<T: Ord + Copy>(slice: &mut [T]) {
 	// TODO: test k upper-bound
 	shell_function(
 		slice,
@@ -100,7 +104,7 @@ pub fn shellsort_tokuda<T: Ord>(slice: &mut [T]) {
 	);
 }
 
-pub fn shellsort_ciura<T: Ord>(slice: &mut [T]) {
+pub fn shellsort_ciura<T: Ord + Copy>(slice: &mut [T]) {
 	const DEFAULT_SEQUENCE: [usize; 12] = [
 		20622, 8855, 3802, 1633,
 		701, 301, 132, 57,
