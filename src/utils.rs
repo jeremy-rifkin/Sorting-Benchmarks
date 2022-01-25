@@ -116,3 +116,9 @@ pub fn fmax<T: PartialOrd>(f0: T, f1: T) -> T {
 		f0
 	}
 }
+
+pub fn compare_and_swap<T: Ord + Copy>(a: &mut T, b: &mut T) {
+	if b < a {
+		std::mem::swap(a, b);
+	}
+}

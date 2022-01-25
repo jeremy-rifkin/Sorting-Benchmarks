@@ -179,6 +179,11 @@ fn test_heapsort_bottom_up() {
 }
 
 #[test]
+fn test_heapsort_bottom_up_right_optimization() {
+	test_sorting_algorithm(algos::heapsort::heapsort_bottom_up_optimized);
+}
+
+#[test]
 fn test_mergesort() {
 	test_sorting_algorithm(algos::mergesort::mergesort);
 }
